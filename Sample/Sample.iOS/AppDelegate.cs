@@ -2,6 +2,8 @@
 using Prism;
 using Prism.Ioc;
 using UIKit;
+using FFImageLoading.Forms;
+using FFImageLoading.Forms.Touch;
 
 namespace Sample.iOS
 {
@@ -24,7 +26,9 @@ namespace Sample.iOS
 
             AiForms.Effects.iOS.Effects.Init();
             AiForms.Renderers.iOS.SettingsViewInit.Init();
+            AiForms.Renderers.iOS.CollectionViewInit.Init();
             Xamarin.Forms.Svg.iOS.SvgImage.Init();
+            CachedImageRenderer.Init();
 
 			LoadApplication(new App(new iOSInitializer()));
 

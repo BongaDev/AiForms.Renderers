@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ContentPage 
+    xmlns="http://xamarin.com/schemas/2014/forms"  
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
+    xmlns:ai="clr-namespace:AiForms.Renderers;assembly=CollectionView"
+    xmlns:ff="clr-namespace:FFImageLoading.Forms;assembly=FFImageLoading.Forms"
+    x:Class="Sample.Views.CollectionViewTest">
+   <ai:GridCollectionView ItemsSource="{Binding ItemsSource}" IsGroupingEnabled="false"
+                           GroupHeaderHeight="36"
+                          GridType="AutoSpacingGrid" PortraitColumns="2" LandscapeColumns="5"
+                          RowSpacing="4" ColumnSpacing="4" IsSquare="false"
+                          ColumnHeight="200" ColumnWidth="100" SpacingType="Center" SelectionMode="Single" ItemTapped="Handle_ItemTapped"
+                          PullToRefreshColor="Red">
+        <x:Arguments>
+            <ListViewCachingStrategy>RecycleElement</ListViewCachingStrategy>
+        </x:Arguments>
+       <!-- <ListView.GroupHeaderTemplate>
+            <DataTemplate>
+                <ai:ContentCell Height="36" >
+                    <Label Text="{Binding Head}" />
+                </ai:ContentCell>
+            </DataTemplate>
+        </ListView.GroupHeaderTemplate>-->
+        <ListView.ItemTemplate>
+            <DataTemplate>
+                <ai:ContentCell>
+                    <StackLayout Spacing="0" Margin="0" BackgroundColor="White">
+                        <ff:CachedImage DownsampleWidth="180" Aspect="AspectFill" Source="{Binding PhotoUrl}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" />
+                        <Label VerticalOptions="End" HorizontalOptions="FillAndExpand" Text="{Binding Title}" />
+                    </StackLayout>
+                </ai:ContentCell>
+            </DataTemplate>
+        </ListView.ItemTemplate>
+    </ai:GridCollectionView>
+</ContentPage>
