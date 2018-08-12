@@ -15,8 +15,10 @@ using CoreGraphics;
 
 namespace AiForms.Renderers.iOS
 {
+    [Foundation.Preserve(AllMembers = true)]
     public class CollectionViewSource:UICollectionViewSource,IUICollectionViewDelegateFlowLayout
     {
+        public CGSize CellSize { get; set; } 
         const int DefaultItemTemplateId = 1;
         GridCollectionView _collectionView;
         UICollectionView _uiCollectionView;
@@ -216,7 +218,7 @@ namespace AiForms.Renderers.iOS
         }
 
 
-        public CGSize CellSize { get; set; } 
+       
             
 
         [Export("collectionView:layout:sizeForItemAtIndexPath:")]

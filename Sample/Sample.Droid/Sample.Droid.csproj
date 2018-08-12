@@ -201,6 +201,14 @@
       <Project>{8FFB1EF3-FAF3-478C-B9F1-4D02E599C3C6}</Project>
       <Name>SettingsView</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\CollectionView\CollectionView.csproj">
+      <Project>{D5C93D88-A5D6-4843-935B-CC72F073B54E}</Project>
+      <Name>CollectionView</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\CollectionView.Droid\CollectionView.Droid.csproj">
+      <Project>{32BC5FF4-81FB-46DD-98ED-3D33C5318933}</Project>
+      <Name>CollectionView.Droid</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.cs" />

@@ -13,6 +13,7 @@ using CoreGraphics;
 
 namespace AiForms.Renderers.iOS.Cells
 {
+    [Foundation.Preserve(AllMembers = true)]
     public class ViewCollectionCell : UICollectionViewCell, INativeElementView
     {
         WeakReference<IVisualElementRenderer> _rendererRef;

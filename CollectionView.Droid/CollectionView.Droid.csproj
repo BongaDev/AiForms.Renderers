@@ -7,7 +7,7 @@
     <ProjectGuid>{32BC5FF4-81FB-46DD-98ED-3D33C5318933}</ProjectGuid>
     <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
-    <RootNamespace>AiForms.Renderers.Droid</RootNamespace>
+    <RootNamespace>AiForms.CollectionView</RootNamespace>
     <AssemblyName>CollectionView.Droid</AssemblyName>
     <TargetFrameworkVersion>v8.1</TargetFrameworkVersion>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
@@ -111,6 +111,11 @@
   <ItemGroup>
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="GridCollectionViewRenderer.cs" />
+    <Compile Include="GridCollectionViewAdapter.cs" />
+    <Compile Include="Cells\ContentCellRenderer.cs" />
+    <Compile Include="Cells\ContentCellContainer.cs" />
+    <Compile Include="GridCollectionItemDecoration.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
@@ -128,6 +133,9 @@
       <Project>{AD4954FC-86AC-421E-93F4-291FA264DF81}</Project>
       <Name>AiForms.Core</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Cells\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <Import Project="..\packages\Xamarin.Android.Support.Compat.25.4.0.2\build\MonoAndroid70\Xamarin.Android.Support.Compat.targets" Condition="Exists('..\packages\Xamarin.Android.Support.Compat.25.4.0.2\build\MonoAndroid70\Xamarin.Android.Support.Compat.targets')" />

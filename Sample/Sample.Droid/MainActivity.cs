@@ -19,6 +19,7 @@ namespace Sample.Droid
             global::Xamarin.Forms.Forms.SetFlags("FastRenderers_Experimental");
 			global::Xamarin.Forms.Forms.Init(this, bundle);
             Xamarin.Forms.Svg.Droid.SvgImage.Init();
+            FFImageLoading.Forms.Platform.CachedImageRenderer.Init(true);
 
             var a = new AiForms.Renderers.Droid.PickerCellRenderer();
 

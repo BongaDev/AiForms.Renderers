@@ -7,8 +7,8 @@
     x:Class="Sample.Views.CollectionViewTest">
    <ai:GridCollectionView ItemsSource="{Binding ItemsSource}" IsGroupingEnabled="false"
                            GroupHeaderHeight="36"
-                          GridType="AutoSpacingGrid" PortraitColumns="2" LandscapeColumns="5"
-                          RowSpacing="4" ColumnSpacing="4" IsSquare="false"
+                          GridType="UniformGrid" PortraitColumns="2" LandscapeColumns="5"
+                          RowSpacing="4" ColumnSpacing="4" IsSquare="true"
                           ColumnHeight="200" ColumnWidth="100" SpacingType="Center" SelectionMode="Single" ItemTapped="Handle_ItemTapped"
                           PullToRefreshColor="Red">
         <x:Arguments>

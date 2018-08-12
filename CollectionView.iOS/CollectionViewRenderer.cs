@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 [assembly: ExportRenderer(typeof(GridCollectionView), typeof(CollectionViewRenderer))]
 namespace AiForms.Renderers.iOS
 {
+    [Foundation.Preserve(AllMembers = true)]
     public class CollectionViewRenderer:ViewRenderer<CollectionView,UICollectionView>
     {
         public const string SectionHeaderId = "SectionHeader";

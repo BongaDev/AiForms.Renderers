@@ -28,7 +28,7 @@ namespace Sample.iOS
             AiForms.Renderers.iOS.SettingsViewInit.Init();
             AiForms.Renderers.iOS.CollectionViewInit.Init();
             Xamarin.Forms.Svg.iOS.SvgImage.Init();
-            CachedImageRenderer.Init();
+            FFImageLoading.Forms.Platform.CachedImageRenderer.Init();
 
 			LoadApplication(new App(new iOSInitializer()));
 
