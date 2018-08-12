@@ -89,6 +89,8 @@ namespace AiForms.Renderers.Droid
 
                 _adapter.IsAttachedToWindow = _isAttached;
 
+                UpdateGroupHeaderHeight();
+
                 _adapter?.NotifyDataSetChanged();
                 //UpdateHeader();
                 //UpdateFooter();

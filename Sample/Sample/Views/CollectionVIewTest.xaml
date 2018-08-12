@@ -5,8 +5,8 @@
     xmlns:ai="clr-namespace:AiForms.Renderers;assembly=CollectionView"
     xmlns:ff="clr-namespace:FFImageLoading.Forms;assembly=FFImageLoading.Forms"
     x:Class="Sample.Views.CollectionViewTest">
-   <ai:GridCollectionView ItemsSource="{Binding ItemsSource}" IsGroupingEnabled="false"
-                           GroupHeaderHeight="36"
+   <ai:GridCollectionView ItemsSource="{Binding ItemsSource}" IsGroupingEnabled="true"
+                          GroupHeaderHeight="36"
                           GridType="UniformGrid" PortraitColumns="2" LandscapeColumns="5"
                           RowSpacing="4" ColumnSpacing="4" IsSquare="true"
                           ColumnHeight="200" ColumnWidth="100" SpacingType="Center" SelectionMode="Single" ItemTapped="Handle_ItemTapped"
@@ -14,13 +14,13 @@
         <x:Arguments>
             <ListViewCachingStrategy>RecycleElement</ListViewCachingStrategy>
         </x:Arguments>
-       <!-- <ListView.GroupHeaderTemplate>
+        <ListView.GroupHeaderTemplate>
             <DataTemplate>
                 <ai:ContentCell Height="36" >
                     <Label Text="{Binding Head}" />
                 </ai:ContentCell>
             </DataTemplate>
-        </ListView.GroupHeaderTemplate>-->
+        </ListView.GroupHeaderTemplate>
         <ListView.ItemTemplate>
             <DataTemplate>
                 <ai:ContentCell>

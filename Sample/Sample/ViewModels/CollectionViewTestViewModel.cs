@@ -6,17 +6,17 @@ namespace Sample.ViewModels
 {
     public class CollectionViewTestViewModel
     {
-        public ObservableCollection<PhotoItem> ItemsSource { get; set; }
-        //public ObservableCollection<PhotoGroup> ItemsSource { get; set; }
+        //public ObservableCollection<PhotoItem> ItemsSource { get; set; }
+        public ObservableCollection<PhotoGroup> ItemsSource { get; set; }
 
         public CollectionViewTestViewModel()
         {
-            //ItemsSource = new ObservableCollection<PhotoGroup>();
-            ItemsSource = new ObservableCollection<PhotoItem>();
+            ItemsSource = new ObservableCollection<PhotoGroup>();
+            //ItemsSource = new ObservableCollection<PhotoItem>();
 
             var list1 = new List<PhotoItem>();
             for (var i = 0; i < 20; i++) {
-                ItemsSource.Add(new PhotoItem {
+                list1.Add(new PhotoItem {
                     PhotoUrl = $"https://kamusoft.jp/openimage/nativecell/{i + 1}.jpg",
                     Title = $"Title {i + 1}",
                     Category = "AAA",
@@ -31,8 +31,8 @@ namespace Sample.ViewModels
                 });
             }
 
-            //ItemsSource.Add(new PhotoGroup(list1) { Head = "AAA" });
-            //ItemsSource.Add(new PhotoGroup(list2) { Head = "BBB" });
+            ItemsSource.Add(new PhotoGroup(list1) { Head = "AAA" });
+            ItemsSource.Add(new PhotoGroup(list2) { Head = "BBB" });
 
         }
 

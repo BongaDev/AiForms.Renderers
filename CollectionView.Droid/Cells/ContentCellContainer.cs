@@ -13,9 +13,9 @@ namespace AiForms.Renderers.Droid.Cells
         // Get internal members
         static Type DefaultRenderer = typeof(Platform).Assembly.GetType("Xamarin.Forms.Platform.Android.Platform+DefaultRenderer");
 
-        readonly Xamarin.Forms.View _parent;
-        readonly BindableProperty _rowHeight;
-        readonly BindableProperty _unevenRows;
+        Xamarin.Forms.View _parent;
+        BindableProperty _rowHeight;
+        BindableProperty _unevenRows;
         IVisualElementRenderer _view;
         ContentCell _contentCell;
         GestureDetector _longPressGestureDetector;
@@ -25,6 +25,19 @@ namespace AiForms.Renderers.Droid.Cells
         public ContentCellContainer(Context context, IVisualElementRenderer view, ContentCell contentCell,
                                     Xamarin.Forms.View parent,
                                     BindableProperty unevenRows, BindableProperty rowHeight):base(context)
+        {
+            _view = view;
+            _parent = parent;
+            _unevenRows = unevenRows;
+            _rowHeight = rowHeight;
+            _contentCell = contentCell;
+            AddView(view.View);
+            UpdateIsEnabled();
+        }
+
+        public void SetCellData(IVisualElementRenderer view, ContentCell contentCell,
+                                    Xamarin.Forms.View parent,
+                                    BindableProperty unevenRows, BindableProperty rowHeight)
         {
             _view = view;
             _parent = parent;
@@ -145,24 +158,24 @@ namespace AiForms.Renderers.Droid.Cells
             Performance.Stop(reference);
         }
 
-        protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
-        {
-            Performance.Start(out string reference);
+        //protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
+        //{
+        //    Performance.Start(out string reference);
 
-            int width = MeasureSpec.GetSize(widthMeasureSpec);
-            int height;
+        //    int width = MeasureSpec.GetSize(widthMeasureSpec);
+        //    int height;
 
-            if (ParentHasUnevenRows) {
-                SizeRequest measure = _view.Element.Measure(Context.FromPixels(width), double.PositiveInfinity, MeasureFlags.IncludeMargins);
-                height = (int)Context.ToPixels(_contentCell.Height > 0 ? _contentCell.Height : measure.Request.Height);
-            }
-            else
-                height = (int)Context.ToPixels(ParentRowHeight == -1 ? BaseCellView.DefaultMinHeight : ParentRowHeight);
+        //    if (ParentHasUnevenRows) {
+        //        SizeRequest measure = _view.Element.Measure(Context.FromPixels(width), double.PositiveInfinity, MeasureFlags.IncludeMargins);
+        //        height = (int)Context.ToPixels(_contentCell.Height > 0 ? _contentCell.Height : measure.Request.Height);
+        //    }
+        //    else
+        //        height = (int)Context.ToPixels(ParentRowHeight == -1 ? BaseCellView.DefaultMinHeight : ParentRowHeight);
 
-            SetMeasuredDimension(width, height);
+        //    SetMeasuredDimension(width, height);
 
-            Performance.Stop(reference);
-        }
+        //    Performance.Stop(reference);
+        //}
 
         //void UpdateWatchForLongPress()
         //{

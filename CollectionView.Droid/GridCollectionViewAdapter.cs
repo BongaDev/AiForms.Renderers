@@ -19,11 +19,12 @@ namespace AiForms.Renderers.Droid
         public bool IsAttachedToWindow { get; set; }
 
         static readonly object DefaultItemTypeOrDataTemplate = new object();
-        const int DefaultGroupHeaderTemplateId = 0;
+        const int DefaultGroupHeaderTemplateId = 1000;
         const int DefaultItemTemplateId = 1;
         int _listCount = -1; // -1 we need to get count from the list
         Dictionary<object, Cell> _prototypicalCellByTypeOrDataTemplate;
-        int _dataTemplateIncrementer = 2; // lets start at not 0 because ... 
+        int _dataTemplateIncrementer = 2;  // DataTemplate count is limited until 2-999
+        int _headerTemplateIncrementer = 1001; // more than or equal to 1000 is group header.
 
         Context _context;
         RecyclerView _recyclerView;
@@ -116,13 +117,14 @@ namespace AiForms.Renderers.Droid
         {
             var group = 0;
             var row = 0;
+            bool isHeader = false;
             DataTemplate itemTemplate;
             if (!_collectionView.IsGroupingEnabled)
                 itemTemplate = _collectionView.ItemTemplate;
             else {
                 group = TemplatedItemsView.TemplatedItems.GetGroupIndexFromGlobal(position, out row);
-
                 if (row == 0) {
+                    isHeader = true;
                     itemTemplate = _collectionView.GroupHeaderTemplate;
                     if (itemTemplate == null)
                         return DefaultGroupHeaderTemplateId;
@@ -156,8 +158,14 @@ namespace AiForms.Renderers.Droid
                 return DefaultItemTemplateId;
 
             if (!_templateToId.TryGetValue(itemTemplate, out int key)) {
-                _dataTemplateIncrementer++;
-                key = _dataTemplateIncrementer;
+                if(isHeader){
+                    _headerTemplateIncrementer++;
+                    key = _headerTemplateIncrementer;
+                }
+                else{
+                    _dataTemplateIncrementer++;
+                    key = _dataTemplateIncrementer;
+                }
                 _templateToId[itemTemplate] = key;
             }
 
@@ -169,18 +177,16 @@ namespace AiForms.Renderers.Droid
 
 
             ViewHolder viewHolder;
-            switch(viewType)
+            if(viewType >= DefaultGroupHeaderTemplateId)
             {
-                case DefaultGroupHeaderTemplateId:
-                    viewHolder = new HeaderViewHolder(
-                        new LinearLayout(_context), 
-                        _gridRenderer.GroupHeaderHeight
-                    );
-                    break;
-                default:
-                    viewHolder = new ContentViewHolder(new LinearLayout(_context),_gridRenderer.RowHeight);
-                    viewHolder.ItemView.SetOnClickListener(this);
-                    break;
+                viewHolder = new HeaderViewHolder(
+                   new LinearLayout(_context),
+                   _gridRenderer.GroupHeaderHeight
+               );
+            }
+            else{
+                viewHolder = new ContentViewHolder(new LinearLayout(_context), _gridRenderer.RowHeight);
+                viewHolder.ItemView.SetOnClickListener(this);
             }
 
             _viewHolders.Add(viewHolder);
