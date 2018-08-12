@@ -61,19 +61,6 @@ namespace AiForms.Renderers
             set { SetValue(LandscapeColumnsProperty, value); }
         }
 
-        public static BindableProperty IsSquareProperty =
-            BindableProperty.Create(
-                nameof(IsSquare),
-                typeof(bool),
-                typeof(GridCollectionView),
-                false,
-                defaultBindingMode: BindingMode.OneWay
-        );
-        public bool IsSquare {
-            get { return (bool)GetValue(IsSquareProperty); }
-            set { SetValue(IsSquareProperty, value); }
-        }
-
         public static BindableProperty RowSpacingProperty =
             BindableProperty.Create(
                 nameof(RowSpacing),

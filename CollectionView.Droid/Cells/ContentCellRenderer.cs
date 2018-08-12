@@ -31,10 +31,11 @@ namespace AiForms.Renderers.Droid.Cells
 
             Cell = item;
             Cell.PropertyChanged -= PropertyChangedHandler;
+            var nativeView = convertView as ContentCellContainer;
 
             SetRenderer(Cell, this);
 
-            if (convertView != null) {
+            if (!nativeView.IsEmpty) {
                 Object tag = convertView.Tag;
                 ContentCellRenderer renderer = (tag as RendererHolder)?.Renderer;
 
@@ -73,7 +74,7 @@ namespace AiForms.Renderers.Droid.Cells
             var cell = (ContentCell)item;
 
             var container = convertView as ContentCellContainer;
-            if (container != null) {
+            if (!container.IsEmpty) {
                 container.Update(cell);
                 Performance.Stop(reference);
                 return container;
@@ -90,11 +91,11 @@ namespace AiForms.Renderers.Droid.Cells
             IVisualElementRenderer view = Platform.CreateRendererWithContext(cell.View, context);
             Platform.SetRenderer(cell.View, view);
             cell.View.IsPlatformEnabled = true;
-            var c = new ContentCellContainer(context, view, cell, ParentView, unevenRows, rowHeight);
+            container.SetCellData(view, cell, ParentView, unevenRows, rowHeight);
 
             Performance.Stop(reference, "GetCellCore");
 
-            return c;
+            return container;
         }
 
         protected virtual void OnCellPropertyChanged(object sender, PropertyChangedEventArgs e)

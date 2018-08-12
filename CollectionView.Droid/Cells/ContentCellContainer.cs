@@ -13,32 +13,30 @@ namespace AiForms.Renderers.Droid.Cells
         // Get internal members
         static Type DefaultRenderer = typeof(Platform).Assembly.GetType("Xamarin.Forms.Platform.Android.Platform+DefaultRenderer");
 
+        public ContentViewHolder ViewHolder { get; set; }
+
         Xamarin.Forms.View _parent;
         BindableProperty _rowHeight;
         BindableProperty _unevenRows;
         IVisualElementRenderer _view;
         ContentCell _contentCell;
+
         GestureDetector _longPressGestureDetector;
         ListViewRenderer _listViewRenderer;
         bool _watchForLongPress;
 
-        public ContentCellContainer(Context context, IVisualElementRenderer view, ContentCell contentCell,
-                                    Xamarin.Forms.View parent,
-                                    BindableProperty unevenRows, BindableProperty rowHeight):base(context)
+        public bool IsEmpty { get; private set; }
+
+        public ContentCellContainer(Context context):base(context)
         {
-            _view = view;
-            _parent = parent;
-            _unevenRows = unevenRows;
-            _rowHeight = rowHeight;
-            _contentCell = contentCell;
-            AddView(view.View);
-            UpdateIsEnabled();
+            IsEmpty = true;
         }
 
         public void SetCellData(IVisualElementRenderer view, ContentCell contentCell,
                                     Xamarin.Forms.View parent,
                                     BindableProperty unevenRows, BindableProperty rowHeight)
         {
+            IsEmpty = false;
             _view = view;
             _parent = parent;
             _unevenRows = unevenRows;
@@ -145,12 +143,18 @@ namespace AiForms.Renderers.Droid.Cells
 
         protected override void OnLayout(bool changed, int l, int t, int r, int b)
         {
+            if(IsEmpty)
+            {
+                return;
+            }
             Performance.Start(out string reference);
 
             double width = Context.FromPixels(r - l);
             double height = Context.FromPixels(b - t);
 
             Performance.Start(reference, "Element.Layout");
+            var orientation = Context.Resources.Configuration.Orientation;
+            System.Diagnostics.Debug.WriteLine($"{orientation} BoxSize:{width} / {height}");
             Xamarin.Forms.Layout.LayoutChildIntoBoundingRegion(_view.Element, new Rectangle(0, 0, width, height));
             Performance.Stop(reference, "Element.Layout");
 
@@ -158,24 +162,16 @@ namespace AiForms.Renderers.Droid.Cells
             Performance.Stop(reference);
         }
 
-        //protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
-        //{
-        //    Performance.Start(out string reference);
+        protected override void OnMeasure(int widthMeasureSpec, int heightMeasureSpec)
+        {
+            Performance.Start(out string reference);
 
-        //    int width = MeasureSpec.GetSize(widthMeasureSpec);
-        //    int height;
+            int width = MeasureSpec.GetSize(widthMeasureSpec);
 
-        //    if (ParentHasUnevenRows) {
-        //        SizeRequest measure = _view.Element.Measure(Context.FromPixels(width), double.PositiveInfinity, MeasureFlags.IncludeMargins);
-        //        height = (int)Context.ToPixels(_contentCell.Height > 0 ? _contentCell.Height : measure.Request.Height);
-        //    }
-        //    else
-        //        height = (int)Context.ToPixels(ParentRowHeight == -1 ? BaseCellView.DefaultMinHeight : ParentRowHeight);
+            SetMeasuredDimension(width, ViewHolder.RowHeight);
 
-        //    SetMeasuredDimension(width, height);
-
-        //    Performance.Stop(reference);
-        //}
+            Performance.Stop(reference);
+        }
 
         //void UpdateWatchForLongPress()
         //{

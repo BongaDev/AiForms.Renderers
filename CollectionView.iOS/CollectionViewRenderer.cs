@@ -27,6 +27,7 @@ namespace AiForms.Renderers.iOS
         ITemplatedItemsView<Cell> TemplatedItemsView => Element;
         GridCollectionView _gridCollectionView => (GridCollectionView)Element;
         UIRefreshControl _refreshControl;
+        bool _isRatioHeight => _gridCollectionView.ColumnHeight <= 5.0;
 
         public CollectionViewRenderer()
         {
@@ -136,7 +137,6 @@ namespace AiForms.Renderers.iOS
                      e.PropertyName == GridCollectionView.PortraitColumnsProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.LandscapeColumnsProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.ColumnSpacingProperty.PropertyName ||
-                     e.PropertyName == GridCollectionView.IsSquareProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.ColumnSpacingProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.SpacingTypeProperty.PropertyName) {
                 UpdateGridType();
@@ -144,12 +144,6 @@ namespace AiForms.Renderers.iOS
             }
             else if (e.PropertyName == GridCollectionView.RowSpacingProperty.PropertyName) {
                 UpdateRowSpacing();
-            }
-            else if (e.PropertyName == GridCollectionView.ColumnHeightProperty.PropertyName) {
-                if (!_gridCollectionView.IsSquare) {
-                    UpdateGridType();
-                    _viewLayout.InvalidateLayout();
-                }
             }
             else if (e.PropertyName == GridCollectionView.ColumnWidthProperty.PropertyName) {
                 if (_gridCollectionView.GridType != GridType.UniformGrid) {
@@ -232,19 +226,28 @@ namespace AiForms.Renderers.iOS
             _dataSource.CellSize = itemSize;
         }
 
+        double CalcurateColumnHeight(double itemWidth)
+        {
+            if (_isRatioHeight) {
+                return itemWidth * _gridCollectionView.ColumnHeight;
+            }
+
+            return _gridCollectionView.ColumnHeight;
+        }
+
         CGSize GetUniformItemSize(int columns)
         {
             var hackWidth = _gridCollectionView.ColumnSpacing > 0 ? 0.1f : 0f;
             float width = (float)Frame.Width - (float)_gridCollectionView.ColumnSpacing * (float)(columns - 1.0f);
             var itemWidth = (float)(width / (float)columns) - hackWidth; // because item is sometimes overflowed.
-            var itemHeight = _gridCollectionView.IsSquare ? itemWidth : _gridCollectionView.ColumnHeight;
+            var itemHeight = CalcurateColumnHeight(itemWidth);
             return new CGSize(itemWidth, itemHeight);
         }
         CGSize GetAutoSpacingItemSize()
         {
             var hackWidth = _gridCollectionView.ColumnSpacing > 0 ? 0.1f : 0f;
             var itemWidth = (float)Math.Min(Frame.Width, _gridCollectionView.ColumnWidth) - hackWidth;
-            var itemHeight = _gridCollectionView.IsSquare ? itemWidth : _gridCollectionView.ColumnHeight;
+            var itemHeight = CalcurateColumnHeight(itemWidth);
             if(_gridCollectionView.SpacingType == SpacingType.Between)
             {
                 return new CGSize(itemWidth, itemHeight);

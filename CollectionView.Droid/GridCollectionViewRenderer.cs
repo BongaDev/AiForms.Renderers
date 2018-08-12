@@ -25,6 +25,7 @@ namespace AiForms.Renderers.Droid
         RecyclerView _recyclerView;
         CollectionViewSpanSizeLookup _spanSizeLookup;
         GridCollectionItemDecoration _itemDecoration;
+        bool _isRatioHeight => _gridCollectionView.ColumnHeight <= 5.0;
         bool _isAttached;
 
         public int RowSpacing { get; set; }
@@ -62,8 +63,9 @@ namespace AiForms.Renderers.Droid
                     _refresh = new SwipeRefreshLayout(Context);
                     _refresh.SetOnRefreshListener(this);
                     _refresh.AddView(_recyclerView, LayoutParams.MatchParent,LayoutParams.MatchParent);
-                    _refresh.SetBackgroundColor(Android.Graphics.Color.Beige);
-                    _recyclerView.SetBackgroundColor(Android.Graphics.Color.Red);
+
+                    //_refresh.SetBackgroundColor(Android.Graphics.Color.Beige);
+                    //_recyclerView.SetBackgroundColor(Android.Graphics.Color.Red);
                     SetNativeControl(_refresh);
                 }
 
@@ -100,13 +102,55 @@ namespace AiForms.Renderers.Droid
             }
         }
 
+
+
         protected override void OnLayout(bool changed, int l, int t, int r, int b)
         {
+            System.Diagnostics.Debug.WriteLine($"In OnLayout {changed}");
             if(changed){
                 UpdateGridType(r - l);
             }
 
             base.OnLayout(changed, l, t, r, b);
+        }
+
+        protected override void OnConfigurationChanged(Configuration newConfig)
+        {
+            base.OnConfigurationChanged(newConfig);
+            System.Diagnostics.Debug.WriteLine($"In OnConfigurationChanged");
+            UpdateGridType();
+
+            Device.StartTimer(TimeSpan.FromMilliseconds(1000), () => {
+                // HACK: run after a bit time because of not refreshing immediately
+                _recyclerView.RemoveItemDecoration(_itemDecoration);
+                _layoutManager.GetSpanSizeLookup().InvalidateSpanIndexCache();
+                _recyclerView.AddItemDecoration(_itemDecoration);
+                _adapter.NotifyDataSetChanged();
+                RequestLayout();
+                Invalidate();
+                _recyclerView.RequestLayout();
+                _recyclerView.Invalidate();
+                _refresh.Invalidate();
+                _refresh.RequestLayout();
+                return false;
+            });
+
+
+
+
+            //_recyclerView.SetAdapter(null);
+            //_recyclerView.SetLayoutManager(null);
+            //_adapter.Dispose();
+            //_adapter = null;
+            //_recyclerView.Invalidate();
+            //_adapter = new GridCollectionViewAdapter(Context, _gridCollectionView, _recyclerView, this);
+            //_recyclerView.SetAdapter(_adapter);
+            //_recyclerView.SetLayoutManager(_layoutManager);
+            //_recyclerView.Invalidate();
+            //_recyclerView.Visibility = ViewStates.Gone;
+            //_recyclerView.Visibility = ViewStates.Visible;
+            //_recyclerView.Invalidate();
+            //_adapter.NotifyDataSetChanged();
         }
 
         protected override void OnAttachedToWindow()
@@ -171,8 +215,9 @@ namespace AiForms.Renderers.Droid
                         spanCount=  _gridCollectionView.LandscapeColumns;
                         break;
                 }
-                ColumnSpacing = (int)(Context.ToPixels(_gridCollectionView.ColumnSpacing) * (spanCount - 1) / spanCount / 2.0);
+                ColumnSpacing = (int)(Context.ToPixels(_gridCollectionView.ColumnSpacing));
                 RowHeight = GetUniformItemHeight(containerWidth, spanCount);
+                System.Diagnostics.Debug.WriteLine($"Decided RowHeight {RowHeight}");
             }
             else
             {
@@ -186,12 +231,23 @@ namespace AiForms.Renderers.Droid
             _spanSizeLookup.SpanSize = spanCount;
         }
 
+        double CalcurateColumnHeight(double itemWidth)
+        {
+            if(_isRatioHeight)
+            {
+                return itemWidth * _gridCollectionView.ColumnHeight;
+            }
+
+            return Context.ToPixels(_gridCollectionView.ColumnHeight);
+        }
+
         int GetUniformItemHeight(int containerWidth, int columns)
         {
             float actualWidth = containerWidth - (float)_gridCollectionView.ColumnSpacing * (float)(columns - 1.0f);
             var itemWidth = (float)(actualWidth / (float)columns);
-            var itemHeight = _gridCollectionView.IsSquare ? itemWidth : _gridCollectionView.ColumnHeight;
-            return (int)(itemHeight + RowSpacing);
+            var itemHeight = CalcurateColumnHeight(itemWidth);
+            var devSpacing = (double)ColumnSpacing * (columns - 1.0) / (double)columns;
+            return (int)(itemHeight - devSpacing + RowSpacing);
         }
 
         (int spanCount,int columnSpacing,int rowHeight) GetAutoSpacingItemSize(double containerWidth)
@@ -200,7 +256,7 @@ namespace AiForms.Renderers.Droid
             var columnHeight = Context.ToPixels(_gridCollectionView.ColumnHeight);
 
             var itemWidth = Math.Min(containerWidth, columnWidth);
-            var itemHeight = _gridCollectionView.IsSquare ? itemWidth : columnHeight;
+            var itemHeight = CalcurateColumnHeight(itemWidth);
 
             var leftSize = containerWidth;
             var spacing = _gridCollectionView.SpacingType == SpacingType.Between ? 0 : Context.ToPixels(_gridCollectionView.ColumnSpacing);
@@ -218,20 +274,20 @@ namespace AiForms.Renderers.Droid
             } while (true);
 
             double contentWidth = 0;
-            double bitSpace = 0;
+            double columnSpacing = 0;
             if(_gridCollectionView.SpacingType == SpacingType.Between)
             {
                 contentWidth = itemWidth * columnCount;
-                bitSpace = (containerWidth - contentWidth) / columnCount / 2.0f;
-                return (columnCount, (int)bitSpace,(int)itemHeight + RowSpacing);
+                columnSpacing = (containerWidth - contentWidth) / (columnCount - 1);
+                return (columnCount, (int)columnSpacing,(int)itemHeight + RowSpacing);
             }
 
             contentWidth = itemWidth * columnCount + spacing * (columnCount - 1f);
             var inset = (containerWidth - contentWidth) / 2.0f;
             _recyclerView.SetPadding((int)inset, 0, (int)inset, 0);
-            bitSpace = spacing * (columnCount - 1) / columnCount / 2.0f;
+            columnSpacing = spacing;
 
-            return (columnCount, (int)bitSpace,(int)itemHeight + RowSpacing);       
+            return (columnCount, (int)columnSpacing,(int)itemHeight + RowSpacing);       
         }
 
         void OnScrollToRequested(object sender, ScrollToRequestedEventArgs e)
@@ -252,7 +308,7 @@ namespace AiForms.Renderers.Droid
             public CollectionViewSpanSizeLookup(GridCollectionViewRenderer parent)
             {
                 _parent = parent;
-                SpanIndexCacheEnabled = true;
+                SpanIndexCacheEnabled = false;
             }
 
 
@@ -266,21 +322,6 @@ namespace AiForms.Renderers.Droid
                 }
 
                 return 1;
-                //if(_gridCollectionView.GridType == GridType.UniformGrid)
-                //{
-                //    var orientation = _parent.Context.Resources.Configuration.Orientation;
-                //    switch(orientation)
-                //    {
-                //        case Orientation.Portrait:
-                //        case Orientation.Square:
-                //        case Orientation.Undefined:
-                //            return _gridCollectionView.PortraitColumns;
-                //        case Orientation.Landscape:
-                //            return _gridCollectionView.LandscapeColumns;
-                //    }
-                //}
-
-                //return SpanSize;
             }
 
             protected override void Dispose(bool disposing)
@@ -295,14 +336,18 @@ namespace AiForms.Renderers.Droid
 
         internal class GridCollectionItemDecoration : RecyclerView.ItemDecoration
         {
+            public bool IncludeEdge { get; set; }
+
             GridCollectionViewRenderer _parentRenderer;
             GridCollectionView _gridCollectionView => _parentRenderer._gridCollectionView;
+            CollectionViewSpanSizeLookup _spanLookUp => _parentRenderer._spanSizeLookup;
             int _spanCount => _parentRenderer._layoutManager.SpanCount;
             Context _context;
             public GridCollectionItemDecoration(Context context, GridCollectionViewRenderer parentRenderer)
             {
                 _parentRenderer = parentRenderer;
                 _context = context;
+
             }
 
             public override void GetItemOffsets(Android.Graphics.Rect outRect, Android.Views.View view, RecyclerView parent, RecyclerView.State state)
@@ -328,16 +373,28 @@ namespace AiForms.Renderers.Droid
                     return;
                 }
 
-                if (spanIndex == 0) {
-                    outRect.Right = _parentRenderer.ColumnSpacing * 2;
+                if(IncludeEdge)
+                {
+                    outRect.Left = _parentRenderer.ColumnSpacing - spanIndex * _parentRenderer.ColumnSpacing / _spanCount; // spacing - column * ((1f / spanCount) * spacing)
+                    outRect.Right = (spanIndex + 1) * _parentRenderer.ColumnSpacing / _spanCount; // (column + 1) * ((1f / spanCount) * spacing)
                 }
-                else if (spanIndex == _spanCount - 1) {
-                    outRect.Left = _parentRenderer.ColumnSpacing * 2;
+                else{
+                    outRect.Left = spanIndex * _parentRenderer.ColumnSpacing / _spanCount; // column * ((1f / spanCount) * spacing)
+                    outRect.Right = _parentRenderer.ColumnSpacing - (spanIndex + 1) * _parentRenderer.ColumnSpacing / _spanCount; // spacing - (column + 1) * ((1f /    spanCount) * spacing)
                 }
-                else {
-                    outRect.Right = _parentRenderer.ColumnSpacing;
-                    outRect.Left = _parentRenderer.ColumnSpacing;
-                }
+
+           
+
+                //if (spanIndex == 0) {
+                //    outRect.Right = (int)Math.Round(_parentRenderer.ColumnBitSpacing * 2.0);
+                //}
+                //else if (spanIndex == _spanCount - 1) {
+                //    outRect.Left = (int)Math.Round(_parentRenderer.ColumnBitSpacing * 2.0);
+                //}
+                //else {
+                //    outRect.Right = (int)Math.Round(_parentRenderer.ColumnBitSpacing);
+                //    outRect.Left = (int)Math.Round(_parentRenderer.ColumnBitSpacing);
+                //}
 
                 outRect.Bottom = _parentRenderer.RowSpacing;
             }

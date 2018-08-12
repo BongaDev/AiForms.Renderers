@@ -19,8 +19,8 @@ namespace AiForms.Renderers.Droid
         public bool IsAttachedToWindow { get; set; }
 
         static readonly object DefaultItemTypeOrDataTemplate = new object();
-        const int DefaultGroupHeaderTemplateId = 1000;
-        const int DefaultItemTemplateId = 1;
+        public const int DefaultGroupHeaderTemplateId = 1000;
+        public const int DefaultItemTemplateId = 1;
         int _listCount = -1; // -1 we need to get count from the list
         Dictionary<object, Cell> _prototypicalCellByTypeOrDataTemplate;
         int _dataTemplateIncrementer = 2;  // DataTemplate count is limited until 2-999
@@ -61,7 +61,7 @@ namespace AiForms.Renderers.Droid
             OnDataChanged();
         }
 
-        void OnDataChanged()
+        public void OnDataChanged()
         {
             InvalidateCount();
             //if (ActionModeContext != null && !TemplatedItemsView.TemplatedItems.Contains(ActionModeContext))
@@ -174,20 +174,12 @@ namespace AiForms.Renderers.Droid
 
         public override RecyclerView.ViewHolder OnCreateViewHolder(ViewGroup parent, int viewType)
         {
-
-
-            ViewHolder viewHolder;
-            if(viewType >= DefaultGroupHeaderTemplateId)
+            var container = new ContentCellContainer(_context);
+            var viewHolder = new ContentViewHolder(_gridRenderer, container);
+            if(viewType < DefaultGroupHeaderTemplateId)
             {
-                viewHolder = new HeaderViewHolder(
-                   new LinearLayout(_context),
-                   _gridRenderer.GroupHeaderHeight
-               );
-            }
-            else{
-                viewHolder = new ContentViewHolder(new LinearLayout(_context), _gridRenderer.RowHeight);
                 viewHolder.ItemView.SetOnClickListener(this);
-            }
+            }           
 
             _viewHolders.Add(viewHolder);
 
@@ -201,19 +193,28 @@ namespace AiForms.Renderers.Droid
 
             Performance.Start(out string reference);
 
-            var layout = holder.ItemView as LinearLayout;
+            var container = holder.ItemView as ContentCellContainer;
+
 
             ListViewCachingStrategy cachingStrategy = Controller.CachingStrategy;
             //var nextCellIsHeader = false;
-            if (cachingStrategy == ListViewCachingStrategy.RetainElement || layout.ChildCount == 0) {
+            if (cachingStrategy == ListViewCachingStrategy.RetainElement || container.IsEmpty) {
                 cell = (ContentCell)GetCellFromPosition(position);
             }
 
             var cellIsBeingReused = false;
-            if (layout.ChildCount > 0) {
+            if (container.ChildCount > 0) {
                 cellIsBeingReused = true;
-                nativeCell = layout.GetChildAt(0);
+
+                //nativeCell = container.GetChildAt(0);
             }
+
+            //if (holder.ItemViewType < DefaultGroupHeaderTemplateId) {
+            //    container.RowHeight = _gridRenderer.RowHeight;
+            //    container.LayoutParameters.Height = _gridRenderer.RowHeight;
+            //    container.SetMinimumHeight(_gridRenderer.RowHeight);
+            //    container.RequestLayout();
+            //}
 
             // いらんっぽい
             //else {
@@ -221,8 +222,8 @@ namespace AiForms.Renderers.Droid
             //    _layoutsCreated.Add(layout);
             //}
 
-            if (((cachingStrategy & ListViewCachingStrategy.RecycleElement) != 0) && layout.ChildCount > 0) {
-                var boxedCell = nativeCell as INativeElementView;
+            if (((cachingStrategy & ListViewCachingStrategy.RecycleElement) != 0) && !container.IsEmpty) {
+                var boxedCell = container as INativeElementView;
                 if (boxedCell == null) {
                     throw new InvalidOperationException($"View for cell must implement {nameof(INativeElementView)} to enable recycling.");
                 }
@@ -270,28 +271,29 @@ namespace AiForms.Renderers.Droid
                     //UnsetSelectedBackground(layout);
 
                 Performance.Stop(reference);
+
+                _recyclerView.RequestLayout();
+                _recyclerView.Invalidate();
+
+
                 return;
             }
 
-            AView view = GetCell(cell, nativeCell, _recyclerView, _context, _collectionView);
-
-            //var textView = new TextView(_context);
-            //textView.LayoutParameters = new ViewGroup.LayoutParams(-1, -1);
-            //textView.SetBackgroundColor(Android.Graphics.Color.Blue);
-            //textView.Text = "abc";
-            //view = textView;
+            AView view = GetCell(cell, container, _recyclerView, _context, _collectionView);
 
 
             Performance.Start(reference, "AddView");
 
             if (cellIsBeingReused) {
-                if (nativeCell != view) {
-                    layout.RemoveViewAt(0);
-                    layout.AddView(view, 0);
+                if (container != view) {
+                    //container.RemoveViewAt(0);
+                    //container.AddView(view, 0);
+                    holder.ItemView = view;
                 }
             }
             else
-                layout.AddView(view, 0);
+                //container.AddView(view, 0);
+                holder.ItemView = view;
 
             Performance.Stop(reference, "AddView");
 
@@ -387,10 +389,21 @@ namespace AiForms.Renderers.Droid
         {
             //throw new NotImplementedException();
         }
+
+        public void UpdateViewHolderHeight()
+        {
+            foreach(ContentViewHolder holder in _viewHolders)
+            {
+                if(holder.ItemViewType >= DefaultGroupHeaderTemplateId){
+                    continue;
+                }
+                //holder.UpdateLayoutParameters(_gridRenderer.RowHeight);
+            }
+        }
     }
 
     [Android.Runtime.Preserve(AllMembers = true)]
-    internal class ViewHolder : RecyclerView.ViewHolder
+    public class ViewHolder : RecyclerView.ViewHolder
     {
         public ViewHolder(AView view) : base(view) { }
 
@@ -410,9 +423,9 @@ namespace AiForms.Renderers.Droid
     {
         public HeaderViewHolder(AView view,double height) : base(view)
         {
-            var layout = view as LinearLayout;
-            layout.Orientation = Orientation.Vertical;
-            layout.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, (int)height);
+            var container = view as ContentCellContainer;
+            container.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, (int)height);
+
         }
 
         protected override void Dispose(bool disposing)
@@ -425,19 +438,26 @@ namespace AiForms.Renderers.Droid
     }
 
     [Android.Runtime.Preserve(AllMembers = true)]
-    internal class ContentViewHolder : ViewHolder
+    public class ContentViewHolder : ViewHolder
     {
-        public ContentViewHolder(AView view,double height) : base(view)
+        GridCollectionViewRenderer _renderer;
+        public bool IsHeader => ItemViewType >= GridCollectionViewAdapter.DefaultGroupHeaderTemplateId;
+        public int RowHeight => IsHeader ? _renderer.GroupHeaderHeight : _renderer.RowHeight;
+
+        public ContentViewHolder(GridCollectionViewRenderer renderer, AView view) : base(view)
         {
-            var layout = view as LinearLayout;
-            layout.Orientation = Orientation.Vertical;
-            layout.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, (int)height);
+            _renderer = renderer;
+
+            view.LayoutParameters = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MatchParent, RowHeight);
+            var container = view as ContentCellContainer;
+            container.ViewHolder = this;
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing) {
                 ItemView.SetOnClickListener(null);
+                _renderer = null;
             }
             base.Dispose(disposing);
         }
