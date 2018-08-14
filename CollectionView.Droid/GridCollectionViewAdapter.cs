@@ -14,7 +14,7 @@ using AiForms.Renderers.Droid.Cells;
 namespace AiForms.Renderers.Droid
 {
     [Android.Runtime.Preserve(AllMembers = true)]
-    public class GridCollectionViewAdapter:RecyclerView.Adapter,AView.IOnClickListener
+    public class GridCollectionViewAdapter:RecyclerView.Adapter,AView.IOnClickListener,AView.IOnLongClickListener
     {
         public bool IsAttachedToWindow { get; set; }
 
@@ -90,8 +90,16 @@ namespace AiForms.Renderers.Droid
             _listCount = -1;
         }
 
+        void UpdateItems(NotifyCollectionChangedEventArgs e, int section, bool resetWhenGrouped)
+        {
+            // TODO: セルの更新通知、少し後で実装する
+            // https://qiita.com/sutchan/items/e7d68a208f71b3b95f8f
+            // https://qiita.com/ralph/items/e56844976117d9883e34
+            // adapterのpositionとsection/rowをキャッシュする必要がありそう
+        }
+
         public override int ItemCount{
-            get{
+            get{             
                 if (_listCount == -1) {
                     var templatedItems = TemplatedItemsView.TemplatedItems;
                     int count = templatedItems.Count;
@@ -387,18 +395,25 @@ namespace AiForms.Renderers.Droid
 
         void AView.IOnClickListener.OnClick(AView v)
         {
-            //throw new NotImplementedException();
+            var container = v as ContentCellContainer;
+            var formsCell = container.Element as ContentCell;
+
+            if(!formsCell.IsEnabled){
+                return;
+            }
+
+
+            var position = _recyclerView.GetChildAdapterPosition(v);
+            var group = TemplatedItemsView.TemplatedItems.GetGroupIndexFromGlobal(position, out int row);
+
+            Controller.NotifyRowTapped(group, row - 1, formsCell);
+
         }
 
-        public void UpdateViewHolderHeight()
+        public bool OnLongClick(AView v)
         {
-            foreach(ContentViewHolder holder in _viewHolders)
-            {
-                if(holder.ItemViewType >= DefaultGroupHeaderTemplateId){
-                    continue;
-                }
-                //holder.UpdateLayoutParameters(_gridRenderer.RowHeight);
-            }
+            
+            return false;
         }
     }
 

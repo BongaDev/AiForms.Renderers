@@ -16,8 +16,6 @@ namespace AiForms.Renderers.Droid.Cells
         public ContentViewHolder ViewHolder { get; set; }
 
         Xamarin.Forms.View _parent;
-        BindableProperty _rowHeight;
-        BindableProperty _unevenRows;
         IVisualElementRenderer _view;
         ContentCell _contentCell;
 
@@ -32,27 +30,16 @@ namespace AiForms.Renderers.Droid.Cells
             IsEmpty = true;
         }
 
-        public void SetCellData(IVisualElementRenderer view, ContentCell contentCell,
-                                    Xamarin.Forms.View parent,
-                                    BindableProperty unevenRows, BindableProperty rowHeight)
+        public void SetCellData(IVisualElementRenderer view, ContentCell contentCell,Xamarin.Forms.View parent)
         {
             IsEmpty = false;
             _view = view;
             _parent = parent;
-            _unevenRows = unevenRows;
-            _rowHeight = rowHeight;
             _contentCell = contentCell;
             AddView(view.View);
             UpdateIsEnabled();
         }
 
-        protected bool ParentHasUnevenRows {
-            get { return (bool)_parent.GetValue(_unevenRows); }
-        }
-
-        protected int ParentRowHeight {
-            get { return (int)_parent.GetValue(_rowHeight); }
-        }
 
         public Element Element {
             get { return _contentCell; }

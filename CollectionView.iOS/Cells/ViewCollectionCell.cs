@@ -10,16 +10,27 @@ using System.ComponentModel;
 using AiForms.Renderers.iOS.Cells;
 using System.Reflection;
 using CoreGraphics;
+using System.Threading.Tasks;
+using Foundation;
+using System.Windows.Input;
 
 namespace AiForms.Renderers.iOS.Cells
 {
     [Foundation.Preserve(AllMembers = true)]
     public class ViewCollectionCell : UICollectionViewCell, INativeElementView
     {
+        // Get internal members
+        static BindableProperty RendererProperty = (BindableProperty)typeof(Platform).GetField("RendererProperty", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null);
+        static Type DefaultRenderer = typeof(Platform).Assembly.GetType("Xamarin.Forms.Platform.iOS.Platform+DefaultRenderer");
+        static Type ModalWrapper = typeof(Platform).Assembly.GetType("Xamarin.Forms.Platform.iOS.ModalWrapper");
+        static MethodInfo ModalWapperDispose = ModalWrapper.GetMethod("Dispose");
+
         WeakReference<IVisualElementRenderer> _rendererRef;
         ContentCell _contentCell;
+        UIView _selectedForegroundView;
 
         Element INativeElementView.Element => ContentCell;
+        CollectionView CellParent => ContentCell.Parent as CollectionView;
         internal bool SupressSeparator { get; set; }
         bool _disposed;
 
@@ -27,10 +38,18 @@ namespace AiForms.Renderers.iOS.Cells
 
         public ViewCollectionCell(IntPtr handle):base(handle)
         {
+            _selectedForegroundView = new UIView();
 
+            AddSubview(_selectedForegroundView);
 
+            _selectedForegroundView.TranslatesAutoresizingMaskIntoConstraints = false;
+            _selectedForegroundView.TopAnchor.ConstraintEqualTo(TopAnchor).Active = true;
+            _selectedForegroundView.LeftAnchor.ConstraintEqualTo(LeftAnchor).Active = true;
+            _selectedForegroundView.BottomAnchor.ConstraintEqualTo(BottomAnchor).Active = true;
+            _selectedForegroundView.RightAnchor.ConstraintEqualTo(RightAnchor).Active = true;
+
+            _selectedForegroundView.Alpha = 0;
         }
-
 
         public ContentCell ContentCell
         {
@@ -59,13 +78,6 @@ namespace AiForms.Renderers.iOS.Cells
             //This sets the content views frame.
             base.LayoutSubviews();
 
-            //TODO: Determine how best to hide the separator line when there is an accessory on the cell
-            //if (SupressSeparator && Accessory == UITableViewCellAccessory.None)
-            //{
-            //    var oldFrame = Frame;
-            //    ContentView.Bounds = new RectangleF(oldFrame.Location, new SizeF(oldFrame.Width, oldFrame.Height + 0.5f));
-            //}
-
             var contentFrame = ContentView.Frame;
             var view = ContentCell.View;
 
@@ -79,6 +91,52 @@ namespace AiForms.Renderers.iOS.Cells
                 renderer.NativeView.Frame = view.Bounds.ToRectangleF();
 
             Performance.Stop(reference);
+        }
+
+        public virtual void CellPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == Cell.IsEnabledProperty.PropertyName)
+                UpdateIsEnabled();
+        }
+
+        public virtual void ParentPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == CollectionView.SelectedColorProperty.PropertyName)
+                UpdateSelectedColor();
+            
+        }
+
+        public virtual void UpdateNativeCell()
+        {
+            BackgroundColor = UIColor.Clear;
+            UpdateSelectedColor();
+            UpdateIsEnabled();
+        }
+
+        void UpdateSelectedColor()
+        {
+            if (CellParent != null && !CellParent.SelectedColor.IsDefault) {
+                _selectedForegroundView.BackgroundColor = CellParent.SelectedColor.ToUIColor();
+            }
+        }
+
+
+        public virtual async void SelectedAnimation(double duration, double start = 1, double end = 0)
+        {
+            //BringSubviewToFront(_selectedForegroundView);
+            //_selectedForegroundView.Hidden = false;
+            _selectedForegroundView.Alpha = (float)start;
+            await AnimateAsync(duration, () => {
+                _selectedForegroundView.Alpha = (float)end;
+            });
+            //_selectedForegroundView.Hidden = true;
+        }
+
+
+
+        protected virtual void UpdateIsEnabled()
+        {
+            UserInteractionEnabled = ContentCell.IsEnabled;
         }
 
         //public override SizeF SizeThatFits(SizeF size)
@@ -111,6 +169,9 @@ namespace AiForms.Renderers.iOS.Cells
 
             if (disposing)
             {
+                ContentCell.PropertyChanged -= CellPropertyChanged;
+                CellParent.PropertyChanged -= ParentPropertyChanged;
+
                 IVisualElementRenderer renderer;
                 if (_rendererRef != null && _rendererRef.TryGetTarget(out renderer) && renderer.Element != null)
                 {
@@ -129,11 +190,7 @@ namespace AiForms.Renderers.iOS.Cells
             base.Dispose(disposing);
         }
 
-        // Get internal members
-        static BindableProperty RendererProperty = (BindableProperty)typeof(Platform).GetField("RendererProperty", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null);//  (System.Reflection.BindingFlags.Static |System.Reflection.BindingFlags.NonPublic).;
-        static Type DefaultRenderer = typeof(Platform).Assembly.GetType("Xamarin.Forms.Platform.iOS.Platform+DefaultRenderer");
-        static Type ModalWrapper = typeof(Platform).Assembly.GetType("Xamarin.Forms.Platform.iOS.ModalWrapper");
-        static MethodInfo ModalWapperDispose = ModalWrapper.GetMethod("Dispose");
+
 
         IVisualElementRenderer GetNewRenderer()
         {

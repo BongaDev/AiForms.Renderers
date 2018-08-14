@@ -12,6 +12,7 @@ using Foundation;
 using System.Linq;
 using AiForms.Renderers.iOS.Cells;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 [assembly: ExportRenderer(typeof(GridCollectionView), typeof(CollectionViewRenderer))]
 namespace AiForms.Renderers.iOS
@@ -28,6 +29,8 @@ namespace AiForms.Renderers.iOS
         GridCollectionView _gridCollectionView => (GridCollectionView)Element;
         UIRefreshControl _refreshControl;
         bool _isRatioHeight => _gridCollectionView.ColumnHeight <= 5.0;
+        ICommand _tapCommand => _gridCollectionView.ItemTapCommand;
+        ICommand _longTapCommand => _gridCollectionView.ItemLongTapCommand;
 
         public CollectionViewRenderer()
         {
@@ -74,6 +77,7 @@ namespace AiForms.Renderers.iOS
                 _collectionView.RegisterClassForCell(typeof(ViewCollectionCell), typeof(ContentCell).FullName);
                 _collectionView.RegisterClassForSupplementaryView(typeof(ViewCollectionCell), UICollectionElementKindSection.Header,SectionHeaderId);
                 _collectionView.RefreshControl = _refreshControl;
+                _collectionView.AllowsSelection = true;
 
                 SetNativeControl(_collectionView);
 
@@ -160,8 +164,10 @@ namespace AiForms.Renderers.iOS
             else if (e.PropertyName == Xamarin.Forms.ListView.IsRefreshingProperty.PropertyName) {
                 UpdateIsRefreshing();
             }
+
         }
 
+      
 
         void UpdateIsRefreshing()
         {

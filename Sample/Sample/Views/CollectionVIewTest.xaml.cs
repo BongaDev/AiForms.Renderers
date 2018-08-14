@@ -14,7 +14,7 @@ namespace Sample.Views
 
         void Handle_ItemTapped(object sender, Xamarin.Forms.ItemTappedEventArgs e)
         {
-            DisplayAlert("", "Tapped!", "OK");
+            //DisplayAlert("", "Tapped!", "OK");
         }
     }
 }

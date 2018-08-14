@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using Reactive.Bindings;
+using Prism.Services;
 
 namespace Sample.ViewModels
 {
@@ -8,8 +10,10 @@ namespace Sample.ViewModels
     {
         //public ObservableCollection<PhotoItem> ItemsSource { get; set; }
         public ObservableCollection<PhotoGroup> ItemsSource { get; set; }
+        public ReactiveCommand TapCommand { get; } = new ReactiveCommand();
+        public ReactiveCommand LongTapCommand { get; } = new ReactiveCommand();
 
-        public CollectionViewTestViewModel()
+        public CollectionViewTestViewModel(IPageDialogService pageDialog)
         {
             ItemsSource = new ObservableCollection<PhotoGroup>();
             //ItemsSource = new ObservableCollection<PhotoItem>();
@@ -34,6 +38,16 @@ namespace Sample.ViewModels
             ItemsSource.Add(new PhotoGroup(list1) { Head = "AAA" });
             ItemsSource.Add(new PhotoGroup(list2) { Head = "BBB" });
 
+
+            TapCommand.Subscribe(async item => {
+                var photo = item as PhotoItem;
+                await pageDialog.DisplayAlertAsync("", $"Tap {photo.Title}", "OK");
+            });
+
+            LongTapCommand.Subscribe(async item => {
+                var photo = item as PhotoItem;
+                await pageDialog.DisplayAlertAsync("", $"LongTap {photo.Title}", "OK");
+            });
         }
 
         public class PhotoGroup:ObservableCollection<PhotoItem>

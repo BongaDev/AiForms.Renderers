@@ -6,9 +6,10 @@
     xmlns:ff="clr-namespace:FFImageLoading.Forms;assembly=FFImageLoading.Forms"
     x:Class="Sample.Views.CollectionViewTest">
    <ai:GridCollectionView ItemsSource="{Binding ItemsSource}" IsGroupingEnabled="true"
-                          GroupHeaderHeight="36"
-                          GridType="AutoSpacingGrid" PortraitColumns="2" LandscapeColumns="5"
-                          RowSpacing="4" ColumnSpacing="4"
+                          GroupHeaderHeight="36" SelectedColor="Yellow"
+                          GridType="UniformGrid" PortraitColumns="3" LandscapeColumns="5"
+                          RowSpacing="4" ColumnSpacing="4" ItemTapCommand="{Binding TapCommand}" 
+                          ItemLongTapCommand="{Binding LongTapCommand}"
                           ColumnHeight="1.0" ColumnWidth="100" SpacingType="Center" SelectionMode="Single" ItemTapped="Handle_ItemTapped"
                           PullToRefreshColor="Red" BackgroundColor="White">
         <x:Arguments>
@@ -24,7 +25,7 @@
         <ListView.ItemTemplate>
             <DataTemplate>
                 <ai:ContentCell>
-                    <StackLayout Spacing="0" Margin="0" BackgroundColor="White">
+                    <StackLayout Spacing="0" Margin="0" BackgroundColor="Transparent">
                         <ff:CachedImage DownsampleWidth="180" Aspect="AspectFill" Source="{Binding PhotoUrl}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" />
                         <Label VerticalOptions="End" HorizontalOptions="FillAndExpand" Text="{Binding Title}" />
                     </StackLayout>

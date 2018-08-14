@@ -3,6 +3,7 @@ using System.Collections;
 using System.ComponentModel;
 using Xamarin.Forms;
 using Xamarin.Forms.Internals;
+using System.Windows.Input;
 
 namespace AiForms.Renderers
 {
@@ -12,7 +13,47 @@ namespace AiForms.Renderers
 
         public CollectionView():base(ListViewCachingStrategy.RecycleElement){}
 
+        public static BindableProperty ItemTapCommandProperty =
+            BindableProperty.Create(
+                nameof(ItemTapCommand),
+                typeof(ICommand),
+                typeof(CollectionView),
+                default(ICommand),
+                defaultBindingMode: BindingMode.OneWay
+            );
 
+        public ICommand ItemTapCommand {
+            get { return (ICommand)GetValue(ItemTapCommandProperty); }
+            set { SetValue(ItemTapCommandProperty, value); }
+        }
+
+        public static BindableProperty ItemLongTapCommandProperty =
+            BindableProperty.Create(
+                nameof(ItemLongTapCommand),
+                typeof(ICommand),
+                typeof(CollectionView),
+                default(ICommand),
+                defaultBindingMode: BindingMode.OneWay
+            );
+
+        public ICommand ItemLongTapCommand {
+            get { return (ICommand)GetValue(ItemLongTapCommandProperty); }
+            set { SetValue(ItemLongTapCommandProperty, value); }
+        }
+
+        public static BindableProperty SelectedColorProperty =
+            BindableProperty.Create(
+                nameof(SelectedColor),
+                typeof(Color),
+                typeof(CollectionView),
+                default(Color),
+                defaultBindingMode: BindingMode.OneWay
+            );
+
+        public Color SelectedColor {
+            get { return (Color)GetValue(SelectedColorProperty); }
+            set { SetValue(SelectedColorProperty, value); }
+        }
 
     }
 
@@ -172,6 +213,7 @@ namespace AiForms.Renderers
             get { return (Color)GetValue(PullToRefreshColorProperty); }
             set { SetValue(PullToRefreshColorProperty, value); }
         }
+
     }
 
 

@@ -80,18 +80,13 @@ namespace AiForms.Renderers.Droid.Cells
                 return container;
             }
 
-            BindableProperty unevenRows = null, rowHeight = null;
-
-            unevenRows = Xamarin.Forms.ListView.HasUnevenRowsProperty;
-            rowHeight = Xamarin.Forms.ListView.RowHeightProperty;
-
             if (cell.View == null)
                 throw new InvalidOperationException($"ViewCell must have a {nameof(cell.View)}");
 
             IVisualElementRenderer view = Platform.CreateRendererWithContext(cell.View, context);
             Platform.SetRenderer(cell.View, view);
             cell.View.IsPlatformEnabled = true;
-            container.SetCellData(view, cell, ParentView, unevenRows, rowHeight);
+            container.SetCellData(view, cell, ParentView);
 
             Performance.Stop(reference, "GetCellCore");
 

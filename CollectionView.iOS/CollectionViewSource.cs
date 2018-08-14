@@ -12,6 +12,8 @@ using Xamarin.Forms.Platform.iOS;
 using Specifics = Xamarin.Forms.PlatformConfiguration.iOSSpecific.ListView;
 using System.Collections.Concurrent;
 using CoreGraphics;
+using ObjCRuntime;
+using System.Diagnostics;
 
 namespace AiForms.Renderers.iOS
 {
@@ -65,27 +67,77 @@ namespace AiForms.Renderers.iOS
             return templatedItems.Count;
         }
 
+        bool _isLongTap = false;
+
+        public override void ItemHighlighted(UICollectionView collectionView, NSIndexPath indexPath)
+        {
+            Debug.WriteLine("ItemHighlighted");
+            _isLongTap = false;
+            var cell = collectionView.CellForItem(indexPath);
+            (cell as ViewCollectionCell)?.SelectedAnimation(0.4,0,0.5);
+        }
+
+        public override void ItemUnhighlighted(UICollectionView collectionView, NSIndexPath indexPath)
+        {
+            Debug.WriteLine("ItemUnHighlighted");
+            if(_isLongTap){
+                return;
+            }
+            var cell = collectionView.CellForItem(indexPath);
+            (cell as ViewCollectionCell)?.SelectedAnimation(0.4, 0.5, 0);
+        }
+
+        public override bool ShouldShowMenu(UICollectionView collectionView, NSIndexPath indexPath)
+        {
+            // Detected long tap
+            if(_collectionView.ItemLongTapCommand == null)
+            {
+                return false;
+            }
+
+            _isLongTap = true;
+            Debug.WriteLine("ShouldShowMenu");
+            var cell = collectionView.CellForItem(indexPath) as ViewCollectionCell;
+            var formsCell = cell.ContentCell;
+
+            if (_collectionView.ItemLongTapCommand != null && _collectionView.ItemLongTapCommand.CanExecute(formsCell.BindingContext)) {
+                _collectionView.ItemLongTapCommand.Execute(formsCell.BindingContext);
+            }
+            (cell as ViewCollectionCell)?.SelectedAnimation(1.0, 0.5, 0);
+            return true;
+        }
+
+        public override bool CanPerformAction(UICollectionView collectionView, Selector action, NSIndexPath indexPath, NSObject sender)
+        {
+            Debug.WriteLine("CanPerformAction");
+            //var cell = collectionView.CellForItem(indexPath);
+            //(cell as ViewCollectionCell)?.SelectedAnimation(0.4, 0.5, 0);
+            return false;
+        }
+
+        public override void PerformAction(UICollectionView collectionView, Selector action, NSIndexPath indexPath, NSObject sender)
+        {
+            
+        }
+
         public override void ItemSelected(UICollectionView collectionView, NSIndexPath indexPath)
         {
-            var cell = collectionView.CellForItem(indexPath);
+            Debug.WriteLine("ItemSelected");
+            var cell = collectionView.CellForItem(indexPath) as ViewCollectionCell;
 
             if (cell == null)
                 return;
 
-            ContentCell formsCell = null;
-            if ((_collectionView.CachingStrategy & ListViewCachingStrategy.RecycleElement) != 0)
-                formsCell = (ContentCell)((INativeElementView)cell).Element;
+            var formsCell = cell.ContentCell;
 
-           cell.BackgroundColor = UIColor.Clear;
-                
+            if(_collectionView.ItemTapCommand != null && _collectionView.ItemTapCommand.CanExecute(formsCell.BindingContext))
+            {
+                _collectionView.ItemTapCommand.Execute(formsCell.BindingContext);    
+            }
 
-            if (_collectionView.SelectionMode == ListViewSelectionMode.None)
-                collectionView.DeselectItem(indexPath, false);
-
-            //_selectionFromNative = true;
-
-            //tableView.EndEditing(true);
             _collectionView.NotifyRowTapped(indexPath.Section, indexPath.Row, formsCell);
+
+            collectionView.DeselectItem(indexPath, false);
         }
 
         public override UICollectionReusableView GetViewForSupplementaryElement(UICollectionView collectionView, NSString elementKind, NSIndexPath indexPath)
