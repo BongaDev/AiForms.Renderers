@@ -1,50 +1,69 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using AiForms.Renderers;
+using System.Diagnostics;
 using AiForms.Renderers.iOS.Cells;
+using CoreGraphics;
 using Foundation;
+using ObjCRuntime;
 using UIKit;
 using Xamarin.Forms;
 using Xamarin.Forms.Internals;
 using Xamarin.Forms.Platform.iOS;
-using Specifics = Xamarin.Forms.PlatformConfiguration.iOSSpecific.ListView;
-using System.Collections.Concurrent;
-using CoreGraphics;
-using ObjCRuntime;
-using System.Diagnostics;
 
 namespace AiForms.Renderers.iOS
 {
     [Foundation.Preserve(AllMembers = true)]
-    public class CollectionViewSource:UICollectionViewSource,IUICollectionViewDelegateFlowLayout
+    public class CollectionViewSource : UICollectionViewSource, IUICollectionViewDelegateFlowLayout
     {
-        public CGSize CellSize { get; set; } 
-        const int DefaultItemTemplateId = 1;
-        GridCollectionView _collectionView;
-        UICollectionView _uiCollectionView;
-        IVisualElementRenderer _prototype;
-        ITemplatedItemsView<Cell> TemplatedItemsView => _collectionView;
-        Dictionary<DataTemplate, int> _templateToId = new Dictionary<DataTemplate, int>();
-        ConcurrentDictionary<DataTemplate, int> _templateTypes = new ConcurrentDictionary<DataTemplate, int>();
         static int s_dataTemplateIncrementer = 2; // lets start at not 0 because
 
-        public CollectionViewSource(CollectionView collectionView,UICollectionView uICollectionView)
+        public CGSize CellSize { get; set; }
+        public Dictionary<int, int> Counts { get; set; }
+        const int DefaultItemTemplateId = 1;
+        bool _isLongTap;
+        bool _disposed;
+        GridCollectionView _collectionView;
+        UICollectionView _uiCollectionView;
+        Dictionary<DataTemplate, int> _templateToId = new Dictionary<DataTemplate, int>();
+        ITemplatedItemsView<Cell> TemplatedItemsView => _collectionView;
+
+
+        public CollectionViewSource(CollectionView collectionView, UICollectionView uICollectionView)
         {
             _collectionView = (GridCollectionView)collectionView;
             _uiCollectionView = uICollectionView;
             Counts = new Dictionary<int, int>();
-            _uiCollectionView.RegisterClassForCell(typeof(ViewCollectionCell), DefaultItemTemplateId.ToString());
+            _uiCollectionView.RegisterClassForCell(typeof(ContentCellContainer), DefaultItemTemplateId.ToString());
         }
 
-        public Dictionary<int, int> Counts { get; set; }
+        protected override void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            if(disposing)
+            {
+                Counts = null;
+                _templateToId = null;
+                _collectionView = null;
+                _uiCollectionView = null;
+               
+            }
+
+            _disposed = true;
+
+            base.Dispose(disposing);
+        }
 
         public override nint NumberOfSections(UICollectionView collectionView)
         {
             if (_collectionView.IsGroupingEnabled)
+            {
                 return TemplatedItemsView.TemplatedItems.Count;
-
+            }
             return 1;
         }
 
@@ -67,72 +86,64 @@ namespace AiForms.Renderers.iOS
             return templatedItems.Count;
         }
 
-        bool _isLongTap = false;
-
         public override void ItemHighlighted(UICollectionView collectionView, NSIndexPath indexPath)
         {
-            Debug.WriteLine("ItemHighlighted");
             _isLongTap = false;
             var cell = collectionView.CellForItem(indexPath);
-            (cell as ViewCollectionCell)?.SelectedAnimation(0.4,0,0.5);
+            (cell as ContentCellContainer)?.SelectedAnimation(0.4, 0, 0.5);
         }
 
         public override void ItemUnhighlighted(UICollectionView collectionView, NSIndexPath indexPath)
         {
-            Debug.WriteLine("ItemUnHighlighted");
-            if(_isLongTap){
+            if (_isLongTap)
+            {
                 return;
             }
             var cell = collectionView.CellForItem(indexPath);
-            (cell as ViewCollectionCell)?.SelectedAnimation(0.4, 0.5, 0);
+            (cell as ContentCellContainer)?.SelectedAnimation(0.4, 0.5, 0);
         }
 
         public override bool ShouldShowMenu(UICollectionView collectionView, NSIndexPath indexPath)
         {
             // Detected long tap
-            if(_collectionView.ItemLongTapCommand == null)
+            if (_collectionView.ItemLongTapCommand == null)
             {
                 return false;
             }
 
             _isLongTap = true;
-            Debug.WriteLine("ShouldShowMenu");
-            var cell = collectionView.CellForItem(indexPath) as ViewCollectionCell;
+            var cell = collectionView.CellForItem(indexPath) as ContentCellContainer;
             var formsCell = cell.ContentCell;
 
-            if (_collectionView.ItemLongTapCommand != null && _collectionView.ItemLongTapCommand.CanExecute(formsCell.BindingContext)) {
+            if (_collectionView.ItemLongTapCommand != null && _collectionView.ItemLongTapCommand.CanExecute(formsCell.BindingContext))
+            {
                 _collectionView.ItemLongTapCommand.Execute(formsCell.BindingContext);
             }
-            (cell as ViewCollectionCell)?.SelectedAnimation(1.0, 0.5, 0);
+
+            (cell as ContentCellContainer)?.SelectedAnimation(1.0, 0.5, 0);
+
             return true;
         }
 
         public override bool CanPerformAction(UICollectionView collectionView, Selector action, NSIndexPath indexPath, NSObject sender)
         {
-            Debug.WriteLine("CanPerformAction");
-            //var cell = collectionView.CellForItem(indexPath);
-            //(cell as ViewCollectionCell)?.SelectedAnimation(0.4, 0.5, 0);
             return false;
         }
 
-        public override void PerformAction(UICollectionView collectionView, Selector action, NSIndexPath indexPath, NSObject sender)
-        {
-            
-        }
+        public override void PerformAction(UICollectionView collectionView, Selector action, NSIndexPath indexPath, NSObject sender){}
 
         public override void ItemSelected(UICollectionView collectionView, NSIndexPath indexPath)
         {
-            Debug.WriteLine("ItemSelected");
-            var cell = collectionView.CellForItem(indexPath) as ViewCollectionCell;
+            var cell = collectionView.CellForItem(indexPath) as ContentCellContainer;
 
             if (cell == null)
                 return;
 
             var formsCell = cell.ContentCell;
 
-            if(_collectionView.ItemTapCommand != null && _collectionView.ItemTapCommand.CanExecute(formsCell.BindingContext))
+            if (_collectionView.ItemTapCommand != null && _collectionView.ItemTapCommand.CanExecute(formsCell.BindingContext))
             {
-                _collectionView.ItemTapCommand.Execute(formsCell.BindingContext);    
+                _collectionView.ItemTapCommand.Execute(formsCell.BindingContext);
             }
 
             _collectionView.NotifyRowTapped(indexPath.Section, indexPath.Row, formsCell);
@@ -145,35 +156,36 @@ namespace AiForms.Renderers.iOS
             if (!_collectionView.IsGroupingEnabled)
                 return null;
 
-            if(elementKind == "UICollectionElementKindSectionFooter")
+            if (elementKind == "UICollectionElementKindSectionFooter")
             {
                 return null;
             }
 
-            //var cell = TemplatedItemsView.TemplatedItems[(int)indexPath.Section] as ContentCell;
-            //ViewCollectionCell nativeCell;
-
             ContentCell cell;
-            ViewCollectionCell nativeCell;
+            ContentCellContainer nativeCell;
 
             Performance.Start(out string reference);
 
             var cachingStrategy = _collectionView.CachingStrategy;
-            if (cachingStrategy == ListViewCachingStrategy.RetainElement) {
+            if (cachingStrategy == ListViewCachingStrategy.RetainElement)
+            {
                 cell = TemplatedItemsView.TemplatedItems[(int)indexPath.Section] as ContentCell;
                 nativeCell = GetNativeHeaderCell(cell, indexPath);
             }
-            else if ((cachingStrategy & ListViewCachingStrategy.RecycleElement) != 0) {
+            else if ((cachingStrategy & ListViewCachingStrategy.RecycleElement) != 0)
+            {
 
                 var id = TemplateIdForPath(indexPath);
 
-                nativeCell = collectionView.DequeueReusableSupplementaryView(UICollectionElementKindSection.Header,CollectionViewRenderer.SectionHeaderId, indexPath) as ViewCollectionCell;
-                if (nativeCell.ContentCell == null) {
+                nativeCell = collectionView.DequeueReusableSupplementaryView(UICollectionElementKindSection.Header, CollectionViewRenderer.SectionHeaderId, indexPath) as ContentCellContainer;
+                if (nativeCell.ContentCell == null)
+                {
                     cell = TemplatedItemsView.TemplatedItems[(int)indexPath.Section] as ContentCell;
 
                     nativeCell = GetNativeHeaderCell(cell, indexPath);
                 }
-                else {
+                else
+                {
                     var templatedList = TemplatedItemsView.TemplatedItems.GetGroup(indexPath.Section);
 
                     cell = (ContentCell)((INativeElementView)nativeCell).Element;
@@ -183,17 +195,10 @@ namespace AiForms.Renderers.iOS
                     cell.SendAppearing();
                 }
             }
-            else {
+            else
+            {
                 throw new NotSupportedException();
             }
-
-            // TODO: いらんっぽい
-            //var bgColor = collectionView.GetIndexPathsForSelectedItems() != null && collectionView.GetIndexPathsForSelectedItems().Equals(indexPath) ? UIColor.Clear : DefaultBackgroundColor;
-            //SetCellBackgroundColor(nativeCell, bgColor);
-            //PreserveActivityIndicatorState(cell);
-
-            //nativeCell.ContentView.HeightAnchor.ConstraintEqualTo((System.nfloat)collectionView.Bounds.Width / 2.0f).Active = true;
-            //nativeCell.ContentView.WidthAnchor.ConstraintEqualTo((System.nfloat)collectionView.Bounds.Width / 2.0f).Active = true;
 
             Performance.Stop(reference);
             return nativeCell;
@@ -202,7 +207,7 @@ namespace AiForms.Renderers.iOS
         public override UICollectionViewCell GetCell(UICollectionView collectionView, NSIndexPath indexPath)
         {
             ContentCell cell;
-            ViewCollectionCell nativeCell;
+            ContentCellContainer nativeCell;
 
             Performance.Start(out string reference);
 
@@ -210,20 +215,20 @@ namespace AiForms.Renderers.iOS
             if (cachingStrategy == ListViewCachingStrategy.RetainElement)
             {
                 cell = GetCellForPath(indexPath);
-                nativeCell = GetNativeCell(cell,indexPath);
+                nativeCell = GetNativeCell(cell, indexPath);
             }
             else if ((cachingStrategy & ListViewCachingStrategy.RecycleElement) != 0)
             {
-                
+
                 var id = TemplateIdForPath(indexPath);
 
 
-                nativeCell = collectionView.DequeueReusableCell(id.ToString() ,indexPath) as ViewCollectionCell;
+                nativeCell = collectionView.DequeueReusableCell(id.ToString(), indexPath) as ContentCellContainer;
                 if (nativeCell.ContentCell == null)
                 {
                     cell = GetCellForPath(indexPath);
 
-                    nativeCell = GetNativeCell(cell,indexPath, true, id.ToString());
+                    nativeCell = GetNativeCell(cell, indexPath, true, id.ToString());
                 }
                 else
                 {
@@ -241,83 +246,37 @@ namespace AiForms.Renderers.iOS
                 throw new NotSupportedException();
             }
 
-            // TODO: いらんっぽい
-            //var bgColor = collectionView.GetIndexPathsForSelectedItems() != null && collectionView.GetIndexPathsForSelectedItems().Equals(indexPath) ? UIColor.Clear : DefaultBackgroundColor;
-            //SetCellBackgroundColor(nativeCell, bgColor);
-            //PreserveActivityIndicatorState(cell);
-
-            float itemWidth = 0;
-            if (_collectionView.GridType == GridType.UniformGrid) {
-                switch (UIApplication.SharedApplication.StatusBarOrientation) {
-                    case UIInterfaceOrientation.Portrait:
-                    case UIInterfaceOrientation.PortraitUpsideDown:
-                    case UIInterfaceOrientation.Unknown:
-                        itemWidth = (float)(collectionView.Frame.Width / (float)_collectionView.PortraitColumns);
-                        break;
-                    case UIInterfaceOrientation.LandscapeLeft:
-                    case UIInterfaceOrientation.LandscapeRight:
-                        itemWidth = (float)(collectionView.Frame.Width / (float)_collectionView.LandscapeColumns);
-                        break;
-                }
-            }
-
-            //nativeCell.LayoutMargins = new UIEdgeInsets(0, 0, 0, 0);
-            //nativeCell.ContentView.HeightAnchor.ConstraintEqualTo(itemWidth).Active = true;
-            //nativeCell.ContentView.WidthAnchor.ConstraintEqualTo(itemWidth).Active = true;
-
             Performance.Stop(reference);
             return nativeCell;
         }
 
-
-       
-            
-
         [Export("collectionView:layout:sizeForItemAtIndexPath:")]
         public CGSize GetSizeForItem(UICollectionView collectionView, UICollectionViewLayout layout, NSIndexPath indexPath)
         {
-            //CGSize itemWidth;
-            //if (_collectionView.GridType == GridType.UniformGrid) {
-            //    switch (UIApplication.SharedApplication.StatusBarOrientation) {
-            //        case UIInterfaceOrientation.Portrait:
-            //        case UIInterfaceOrientation.PortraitUpsideDown:
-            //        case UIInterfaceOrientation.Unknown:
-            //            itemWidth =  (float)(collectionView.Frame.Width / (float)_collectionView.PortraitColumns);
-            //            break;
-            //        case UIInterfaceOrientation.LandscapeLeft:
-            //        case UIInterfaceOrientation.LandscapeRight:
-            //            itemWidth = (float)(collectionView.Frame.Width / (float)_collectionView.LandscapeColumns);
-            //            break;
-            //    }
-            //}
-
-            //return new CGSize(itemWidth, itemWidth);
-
             return CellSize;
         }
 
-
-        ViewCollectionCell GetNativeHeaderCell(ContentCell cell, NSIndexPath indexPath)
+        ContentCellContainer GetNativeHeaderCell(ContentCell cell, NSIndexPath indexPath)
         {
             var renderer = (ContentCellRenderer)Xamarin.Forms.Internals.Registrar.Registered.GetHandlerForObject<IRegisterable>(cell);
 
-            var reusableCell = _uiCollectionView.DequeueReusableSupplementaryView(UICollectionElementKindSection.Header,CollectionViewRenderer.SectionHeaderId,indexPath) as ViewCollectionCell;
+            var reusableCell = _uiCollectionView.DequeueReusableSupplementaryView(UICollectionElementKindSection.Header, CollectionViewRenderer.SectionHeaderId, indexPath) as ContentCellContainer;
 
-            var nativeCell = renderer.GetCell(cell, reusableCell, _uiCollectionView) as ViewCollectionCell;
+            var nativeCell = renderer.GetCell(cell, reusableCell, _uiCollectionView) as ContentCellContainer;
 
             return nativeCell;
         }
 
-        ViewCollectionCell GetNativeCell(ContentCell cell,NSIndexPath indexPath,bool recycleCells = false,string templateId = "")
+        ContentCellContainer GetNativeCell(ContentCell cell, NSIndexPath indexPath, bool recycleCells = false, string templateId = "")
         {
             var id = recycleCells ? templateId : cell.GetType().FullName;
 
             var renderer = (ContentCellRenderer)Xamarin.Forms.Internals.Registrar.Registered.GetHandlerForObject<IRegisterable>(cell);
 
             // UITableViewと違って初回でもインスタンスを返すので注意
-            var reusableCell = _uiCollectionView.DequeueReusableCell(id,indexPath) as ViewCollectionCell;
+            var reusableCell = _uiCollectionView.DequeueReusableCell(id, indexPath) as ContentCellContainer;
 
-            var nativeCell = renderer.GetCell(cell, reusableCell, _uiCollectionView ) as ViewCollectionCell;
+            var nativeCell = renderer.GetCell(cell, reusableCell, _uiCollectionView) as ContentCellContainer;
 
             var cellWithContent = nativeCell;
 
@@ -325,7 +284,7 @@ namespace AiForms.Renderers.iOS
             // This prevents it from showing up, so lets turn it back on!
             if (cellWithContent.Layer.Hidden)
                 cellWithContent.Layer.Hidden = false;
-            
+
             // Because the layer was hidden we need to layout the cell by hand
             if (cellWithContent != null)
                 cellWithContent.LayoutSubviews();
@@ -350,7 +309,7 @@ namespace AiForms.Renderers.iOS
                 s_dataTemplateIncrementer++;
                 key = s_dataTemplateIncrementer;
                 _templateToId[itemTemplate] = key;
-                _uiCollectionView.RegisterClassForCell(typeof(ViewCollectionCell), key.ToString());
+                _uiCollectionView.RegisterClassForCell(typeof(ContentCellContainer), key.ToString());
             }
 
             return key;

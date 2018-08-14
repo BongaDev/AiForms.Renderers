@@ -44,7 +44,7 @@ namespace AiForms.Renderers.iOS
         }
 
         //This method allows us to update the insets if the Frame changes
-        internal void UpdateInsets()
+        public void UpdateInsets()
         {
             //being called from LayoutSubviews but keyboard wasn't shown yet
             if (_lastKeyboardRect.IsEmpty)

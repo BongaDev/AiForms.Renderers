@@ -41,20 +41,32 @@ namespace AiForms.Renderers
             set { SetValue(ItemLongTapCommandProperty, value); }
         }
 
-        public static BindableProperty SelectedColorProperty =
+        public static BindableProperty TouchFeedbackColorProperty =
             BindableProperty.Create(
-                nameof(SelectedColor),
+                nameof(TouchFeedbackColor),
                 typeof(Color),
                 typeof(CollectionView),
                 default(Color),
                 defaultBindingMode: BindingMode.OneWay
             );
 
-        public Color SelectedColor {
-            get { return (Color)GetValue(SelectedColorProperty); }
-            set { SetValue(SelectedColorProperty, value); }
+        public Color TouchFeedbackColor {
+            get { return (Color)GetValue(TouchFeedbackColorProperty); }
+            set { SetValue(TouchFeedbackColorProperty, value); }
         }
 
+        // kill unused properties
+        new object Header { get; }
+        new DataTemplate HeaderTemplate { get; }
+        new object Footer { get; }
+        new DataTemplate FooterTemplate { get; }
+        new object SelectedItem { get; }
+        new ListViewSelectionMode SelectionMode { get; }
+        new bool HasUnevenRows { get; }
+        new int RowHeight { get; }
+        new SeparatorVisibility SeparatorVisibility { get; }
+        new Color SeparatorColor { get; }
+        new event EventHandler<SelectedItemChangedEventArgs> ItemSelected;
     }
 
     public enum GridType

@@ -6,14 +6,17 @@
     xmlns:ff="clr-namespace:FFImageLoading.Forms;assembly=FFImageLoading.Forms"
     x:Class="Sample.Views.CollectionViewTest">
    <ai:GridCollectionView ItemsSource="{Binding ItemsSource}" IsGroupingEnabled="true"
-                          GroupHeaderHeight="36" SelectedColor="Yellow"
-                          GridType="UniformGrid" PortraitColumns="3" LandscapeColumns="5"
+                          GroupHeaderHeight="36" TouchFeedbackColor="Yellow"
+                          GridType="UniformGrid" PortraitColumns="2" LandscapeColumns="5"
                           RowSpacing="4" ColumnSpacing="4" ItemTapCommand="{Binding TapCommand}" 
-                          ItemLongTapCommand="{Binding LongTapCommand}"
-                          ColumnHeight="1.0" ColumnWidth="100" SpacingType="Center" SelectionMode="Single" ItemTapped="Handle_ItemTapped"
-                          PullToRefreshColor="Red" BackgroundColor="White">
+                          ItemLongTapCommand="{Binding LongTapCommand}" 
+                          ColumnHeight="1.0" ColumnWidth="100" SpacingType="Center" ItemTapped="Handle_ItemTapped"
+                          PullToRefreshColor="Red" IsPullToRefreshEnabled="true" 
+                          IsRefreshing="{Binding IsRefreshing.Value}" RefreshCommand="{Binding RefreshCommand}"
+                          >
         <x:Arguments>
             <ListViewCachingStrategy>RecycleElement</ListViewCachingStrategy>
+<!--            <ListViewCachingStrategy>RetainElement</ListViewCachingStrategy>-->
         </x:Arguments>
         <ListView.GroupHeaderTemplate>
             <DataTemplate>
@@ -26,8 +29,13 @@
             <DataTemplate>
                 <ai:ContentCell>
                     <StackLayout Spacing="0" Margin="0" BackgroundColor="Transparent">
-                        <ff:CachedImage DownsampleWidth="180" Aspect="AspectFill" Source="{Binding PhotoUrl}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" />
-                        <Label VerticalOptions="End" HorizontalOptions="FillAndExpand" Text="{Binding Title}" />
+                        <ff:CachedImage StyleId="Image" LoadingPlaceholder="icon.png" DownsampleWidth="180" RetryCount="3" RetryDelay="500" Aspect="AspectFill" Source="{Binding PhotoUrl}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" />
+<!--                        <Image Aspect="AspectFill" Source="{Binding PhotoUrl}" VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand" />-->
+                        <Label x:Name="label1" VerticalOptions="End" HorizontalOptions="FillAndExpand" Text="{Binding Title}">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="Handle_Tapped" />
+                            </Label.GestureRecognizers>
+                        </Label>
                     </StackLayout>
                 </ai:ContentCell>
             </DataTemplate>

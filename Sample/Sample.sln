@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CollectionView.iOS", "..\Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CollectionView.Droid", "..\CollectionView.Droid\CollectionView.Droid.csproj", "{32BC5FF4-81FB-46DD-98ED-3D33C5318933}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiForms.Core.Droid", "AiForms.Core.Droid\AiForms.Core.Droid.csproj", "{77FAD2F5-6024-4883-BF31-D1937B44C0AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -165,6 +167,18 @@ Global
 		{32BC5FF4-81FB-46DD-98ED-3D33C5318933}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
 		{32BC5FF4-81FB-46DD-98ED-3D33C5318933}.Debug|iPhone.ActiveCfg = Debug|Any CPU
 		{32BC5FF4-81FB-46DD-98ED-3D33C5318933}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Release|iPhone.Build.0 = Release|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{77FAD2F5-6024-4883-BF31-D1937B44C0AE}.Debug|iPhone.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -174,13 +188,6 @@ Global
 		$1.TabsToSpaces = True
 		$0.CSharpFormattingPolicy = $2
 		$2.scope = text/x-csharp
-		$2.NewLinesForBracesInProperties = False
-		$2.NewLinesForBracesInAccessors = False
-		$2.NewLinesForBracesInAnonymousMethods = False
-		$2.NewLinesForBracesInControlBlocks = False
-		$2.NewLinesForBracesInAnonymousTypes = False
-		$2.NewLinesForBracesInObjectCollectionArrayInitializers = False
-		$2.NewLinesForBracesInLambdaExpressionBody = False
 		$0.DotNetNamingPolicy = $3
 		$3.DirectoryNamespaceAssociation = PrefixedHierarchical
 	EndGlobalSection

@@ -16,5 +16,10 @@ namespace Sample.Views
         {
             //DisplayAlert("", "Tapped!", "OK");
         }
+
+        void Handle_Tapped(object sender, System.EventArgs e)
+        {
+            DisplayAlert("", "OnFormsTapped", "OK");
+        }
     }
 }

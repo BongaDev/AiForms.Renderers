@@ -1,58 +1,49 @@
 ﻿using System;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Input;
 using AiForms.Renderers;
 using AiForms.Renderers.iOS;
-using Xamarin.Forms;
-using Xamarin.Forms.Platform.iOS;
-using UIKit;
-using CoreGraphics;
-using System.ComponentModel;
-using System.Collections.Specialized;
-using Xamarin.Forms.Internals;
-using Foundation;
-using System.Linq;
 using AiForms.Renderers.iOS.Cells;
-using System.Threading.Tasks;
-using System.Windows.Input;
+using CoreGraphics;
+using Foundation;
+using UIKit;
+using Xamarin.Forms;
+using Xamarin.Forms.Internals;
+using Xamarin.Forms.Platform.iOS;
+using RectangleF = CoreGraphics.CGRect;
 
 [assembly: ExportRenderer(typeof(GridCollectionView), typeof(CollectionViewRenderer))]
 namespace AiForms.Renderers.iOS
 {
     [Foundation.Preserve(AllMembers = true)]
-    public class CollectionViewRenderer:ViewRenderer<CollectionView,UICollectionView>
+    public class CollectionViewRenderer : ViewRenderer<CollectionView, UICollectionView>
     {
         public const string SectionHeaderId = "SectionHeader";
+
         UICollectionViewFlowLayout _viewLayout;
         UICollectionView _collectionView;
+        UIRefreshControl _refreshControl;
         CollectionViewSource _dataSource;
         KeyboardInsetTracker _insetTracker;
+        RectangleF _previousFrame;
+        bool _disposed;
         ITemplatedItemsView<Cell> TemplatedItemsView => Element;
         GridCollectionView _gridCollectionView => (GridCollectionView)Element;
-        UIRefreshControl _refreshControl;
         bool _isRatioHeight => _gridCollectionView.ColumnHeight <= 5.0;
         ICommand _tapCommand => _gridCollectionView.ItemTapCommand;
         ICommand _longTapCommand => _gridCollectionView.ItemLongTapCommand;
-
-        public CollectionViewRenderer()
-        {
-            
-        }
-
-        public override SizeRequest GetDesiredSize(double widthConstraint, double heightConstraint)
-        {
-            return Control.GetSizeRequest(widthConstraint, heightConstraint, 50, 50);
-        }
 
 
         protected override void OnElementChanged(ElementChangedEventArgs<CollectionView> e)
         {
             base.OnElementChanged(e);
 
-            if(e.OldElement != null)
+            if (e.OldElement != null)
             {
                 var templatedItems = ((ITemplatedItemsView<Cell>)e.OldElement).TemplatedItems;
                 templatedItems.CollectionChanged -= OnCollectionChanged;
                 templatedItems.GroupedCollectionChanged -= OnGroupedCollectionChanged;
-                _refreshControl.ValueChanged -= RefreshControl_ValueChanged;
             }
 
             if (e.NewElement != null)
@@ -66,17 +57,13 @@ namespace AiForms.Renderers.iOS
                 _viewLayout.SectionHeadersPinToVisibleBounds = true; // fix header cell
 
 
-                // TODO: 細かいサイズ調整をする場合はサブクラスで対応する
-                //_viewLayout.HeaderReferenceSize = new CGSize(300,36);
-
                 _refreshControl = new UIRefreshControl();
                 _refreshControl.ValueChanged += RefreshControl_ValueChanged;
 
                 _collectionView = new UICollectionView(CGRect.Empty, _viewLayout);
-                //_collectionView.Delegate = this;
-                _collectionView.RegisterClassForCell(typeof(ViewCollectionCell), typeof(ContentCell).FullName);
-                _collectionView.RegisterClassForSupplementaryView(typeof(ViewCollectionCell), UICollectionElementKindSection.Header,SectionHeaderId);
-                _collectionView.RefreshControl = _refreshControl;
+                _collectionView.RegisterClassForCell(typeof(ContentCellContainer), typeof(ContentCell).FullName);
+                _collectionView.RegisterClassForSupplementaryView(typeof(ContentCellContainer), UICollectionElementKindSection.Header, SectionHeaderId);
+
                 _collectionView.AllowsSelection = true;
 
                 SetNativeControl(_collectionView);
@@ -95,24 +82,15 @@ namespace AiForms.Renderers.iOS
                 templatedItems.GroupedCollectionChanged += OnGroupedCollectionChanged;
 
 
-                _dataSource = new CollectionViewSource(e.NewElement,_collectionView);
+                _dataSource = new CollectionViewSource(e.NewElement, _collectionView);
                 _collectionView.Source = _dataSource;
 
+                UpdateBackgroundColor();
                 UpdateRowSpacing();
                 UpdatePullToRefreshEnabled();
                 UpdatePullToRefreshColor();
-                //_collectionView.ReloadData();
             }
         }
-
-        void RefreshControl_ValueChanged(object sender, EventArgs e)
-        {
-            if (_refreshControl.Refreshing) {
-                _gridCollectionView.SendRefreshing();
-            }
-            _gridCollectionView.IsRefreshing = _refreshControl.Refreshing;
-        }
-
 
         public override void LayoutSubviews()
         {
@@ -121,82 +99,201 @@ namespace AiForms.Renderers.iOS
             UpdateGridType();
 
             UpdateGroupHeaderHeight();
-            //_viewLayout.InvalidateLayout();
-            //_collectionView.ReloadData();
+
+            if (_previousFrame != Frame)
+            {
+                _previousFrame = Frame;
+                _insetTracker?.UpdateInsets();
+            }
+        }
+
+        public override SizeRequest GetDesiredSize(double widthConstraint, double heightConstraint)
+        {
+            return Control.GetSizeRequest(widthConstraint, heightConstraint, 50, 50);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _insetTracker?.Dispose();
+                _insetTracker = null;
+
+                foreach (UIView subview in Subviews)
+                {
+                    DisposeSubviews(subview);
+                }
+
+                if (Element != null)
+                {
+                    var templatedItems = TemplatedItemsView.TemplatedItems;
+                    templatedItems.CollectionChanged -= OnCollectionChanged;
+                    templatedItems.GroupedCollectionChanged -= OnGroupedCollectionChanged;
+                }
+
+                _dataSource?.Dispose();
+                _dataSource = null;
+
+                _viewLayout?.Dispose();
+                _viewLayout = null;
+
+                if (_refreshControl != null)
+                {
+                    _refreshControl.ValueChanged -= RefreshControl_ValueChanged;
+                    _refreshControl.Dispose();
+                    _refreshControl = null;
+                }
+
+                _collectionView?.Dispose();
+                _collectionView = null;
+
+
+            }
+
+            _disposed = true;
+
+            base.Dispose(disposing);
+        }
+
+        void DisposeSubviews(UIView view)
+        {
+            var ver = view as IVisualElementRenderer;
+
+            if (ver == null)
+            {
+                // VisualElementRenderers should implement their own dispose methods that will appropriately dispose and remove their child views.
+                // Attempting to do this work twice could cause a SIGSEGV (only observed in iOS8), so don't do this work here.
+                // Non-renderer views, such as separator lines, etc., can be removed here.
+                foreach (UIView subView in view.Subviews)
+                {
+                    DisposeSubviews(subView);
+                }
+
+                view.RemoveFromSuperview();
+            }
+
+            view.Dispose();
         }
 
         protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             base.OnElementPropertyChanged(sender, e);
-            if (e.PropertyName == Xamarin.Forms.ListView.IsGroupingEnabledProperty.PropertyName) {
+            if (e.PropertyName == Xamarin.Forms.ListView.IsGroupingEnabledProperty.PropertyName)
+            {
                 Control.ReloadData();
             }
-            else if (e.PropertyName == Xamarin.Forms.ListView.SelectionModeProperty.PropertyName) {
-                UpdateSelectionMode();
-            }
-            else if (e.PropertyName == GridCollectionView.GroupHeaderHeightProperty.PropertyName) {
+            else if (e.PropertyName == GridCollectionView.GroupHeaderHeightProperty.PropertyName)
+            {
                 UpdateGroupHeaderHeight();
+                _viewLayout.InvalidateLayout();
             }
             else if (e.PropertyName == GridCollectionView.GridTypeProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.PortraitColumnsProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.LandscapeColumnsProperty.PropertyName ||
                      e.PropertyName == GridCollectionView.ColumnSpacingProperty.PropertyName ||
-                     e.PropertyName == GridCollectionView.ColumnSpacingProperty.PropertyName ||
-                     e.PropertyName == GridCollectionView.SpacingTypeProperty.PropertyName) {
+                     e.PropertyName == GridCollectionView.ColumnHeightProperty.PropertyName ||
+                     e.PropertyName == GridCollectionView.SpacingTypeProperty.PropertyName)
+            {
                 UpdateGridType();
                 _viewLayout.InvalidateLayout();
             }
-            else if (e.PropertyName == GridCollectionView.RowSpacingProperty.PropertyName) {
+            else if (e.PropertyName == GridCollectionView.RowSpacingProperty.PropertyName)
+            {
                 UpdateRowSpacing();
+                _viewLayout.InvalidateLayout();
             }
-            else if (e.PropertyName == GridCollectionView.ColumnWidthProperty.PropertyName) {
-                if (_gridCollectionView.GridType != GridType.UniformGrid) {
+            else if (e.PropertyName == GridCollectionView.ColumnWidthProperty.PropertyName)
+            {
+                if (_gridCollectionView.GridType != GridType.UniformGrid)
+                {
                     UpdateGridType();
                     _viewLayout.InvalidateLayout();
                 }
             }
-            else if (e.PropertyName == ListView.IsPullToRefreshEnabledProperty.PropertyName) {
+            else if (e.PropertyName == ListView.IsPullToRefreshEnabledProperty.PropertyName)
+            {
                 UpdatePullToRefreshEnabled();
             }
-            else if (e.PropertyName == GridCollectionView.PullToRefreshColorProperty.PropertyName) {
+            else if (e.PropertyName == GridCollectionView.PullToRefreshColorProperty.PropertyName)
+            {
                 UpdatePullToRefreshColor();
             }
-            else if (e.PropertyName == Xamarin.Forms.ListView.IsRefreshingProperty.PropertyName) {
+            else if (e.PropertyName == Xamarin.Forms.ListView.IsRefreshingProperty.PropertyName)
+            {
                 UpdateIsRefreshing();
+            }
+            else if (e.PropertyName == VisualElement.BackgroundColorProperty.PropertyName)
+            {
+                UpdateBackgroundColor();
             }
 
         }
 
-      
+        void RefreshControl_ValueChanged(object sender, EventArgs e)
+        {
+            if (_refreshControl.Refreshing)
+            {
+                _gridCollectionView.SendRefreshing();
+            }
+            _gridCollectionView.IsRefreshing = _refreshControl.Refreshing;
+        }
+
+        void UpdateBackgroundColor()
+        {
+            if(Element.BackgroundColor.IsDefault)
+            {
+                Control.BackgroundColor = UIColor.Clear; 
+            }
+            else{
+                Control.BackgroundColor = Element.BackgroundColor.ToUIColor();
+            }
+        }
 
         void UpdateIsRefreshing()
         {
             var refreshing = Element.IsRefreshing;
-            if (_gridCollectionView == null){
+            if (_gridCollectionView == null)
+            {
                 return;
             }
-            if(refreshing)
+            if (refreshing)
             {
-                if(!_refreshControl.Refreshing){
+                if (!_refreshControl.Refreshing)
+                {
                     _refreshControl.BeginRefreshing();
                 }
             }
-            else{
+            else
+            {
                 _refreshControl.EndRefreshing();
             }
-               
+
         }
 
         void UpdatePullToRefreshColor()
         {
-            if(!_gridCollectionView.PullToRefreshColor.IsDefault){
+            if (!_gridCollectionView.PullToRefreshColor.IsDefault)
+            {
                 _refreshControl.TintColor = _gridCollectionView.PullToRefreshColor.ToUIColor();
             }
         }
 
         void UpdatePullToRefreshEnabled()
         {
-            _refreshControl.Enabled = Element.IsPullToRefreshEnabled;
+            _refreshControl.Enabled = Element.IsPullToRefreshEnabled && (Element as IListViewController).RefreshAllowed;
+            if (_refreshControl.Enabled)
+            {
+                _collectionView.RefreshControl = _refreshControl;
+            }
+            else
+            {
+                _collectionView.RefreshControl = null;
+            }
         }
 
         void UpdateRowSpacing()
@@ -204,13 +301,24 @@ namespace AiForms.Renderers.iOS
             _viewLayout.MinimumLineSpacing = (System.nfloat)_gridCollectionView.RowSpacing;
         }
 
+        void UpdateGroupHeaderHeight()
+        {
+            if (_gridCollectionView.IsGroupingEnabled)
+            {
+                // TODO: 細かいサイズ調整をする場合はサブクラスで対応する
+                _viewLayout.HeaderReferenceSize = new CGSize(Bounds.Width, _gridCollectionView.GroupHeaderHeight);
+            }
+        }
+
         void UpdateGridType()
         {
             _viewLayout.SectionInset = new UIEdgeInsets(0, 0, 0, 0); // Reset insets
             CGSize itemSize = CGSize.Empty;
 
-            if (_gridCollectionView.GridType == GridType.UniformGrid) {
-                switch (UIApplication.SharedApplication.StatusBarOrientation) {
+            if (_gridCollectionView.GridType == GridType.UniformGrid)
+            {
+                switch (UIApplication.SharedApplication.StatusBarOrientation)
+                {
                     case UIInterfaceOrientation.Portrait:
                     case UIInterfaceOrientation.PortraitUpsideDown:
                     case UIInterfaceOrientation.Unknown:
@@ -234,7 +342,8 @@ namespace AiForms.Renderers.iOS
 
         double CalcurateColumnHeight(double itemWidth)
         {
-            if (_isRatioHeight) {
+            if (_isRatioHeight)
+            {
                 return itemWidth * _gridCollectionView.ColumnHeight;
             }
 
@@ -249,12 +358,13 @@ namespace AiForms.Renderers.iOS
             var itemHeight = CalcurateColumnHeight(itemWidth);
             return new CGSize(itemWidth, itemHeight);
         }
+
         CGSize GetAutoSpacingItemSize()
         {
             var hackWidth = _gridCollectionView.ColumnSpacing > 0 ? 0.1f : 0f;
             var itemWidth = (float)Math.Min(Frame.Width, _gridCollectionView.ColumnWidth) - hackWidth;
             var itemHeight = CalcurateColumnHeight(itemWidth);
-            if(_gridCollectionView.SpacingType == SpacingType.Between)
+            if (_gridCollectionView.SpacingType == SpacingType.Between)
             {
                 return new CGSize(itemWidth, itemHeight);
             }
@@ -263,13 +373,15 @@ namespace AiForms.Renderers.iOS
             var leftSize = (float)Frame.Width;
             var spacing = (float)_gridCollectionView.ColumnSpacing;
             int columnCount = 0;
-            do {
+            do
+            {
                 leftSize -= itemWidth;
-                if(leftSize < 0){
+                if (leftSize < 0)
+                {
                     break;
                 }
                 columnCount++;
-                if(leftSize - spacing < 0)
+                if (leftSize - spacing < 0)
                 {
                     break;
                 }
@@ -285,43 +397,6 @@ namespace AiForms.Renderers.iOS
             return new CGSize(itemWidth, itemHeight);
         }
 
-        void UpdateGroupHeaderHeight()
-        {
-            if (_gridCollectionView.IsGroupingEnabled) {
-                _viewLayout.HeaderReferenceSize = new CGSize(Bounds.Width, _gridCollectionView.GroupHeaderHeight);
-            }
-        }
-
-        void UpdateSelectionMode()
-        {
-            if (Element.SelectionMode == ListViewSelectionMode.None)
-            {
-                Element.SelectedItem = null;
-                var selectedIndexPath = Control.GetIndexPathsForSelectedItems().FirstOrDefault();
-                if (selectedIndexPath != null)
-                    Control.DeselectItem(selectedIndexPath, false);
-            }
-        }
-
-        void DisposeSubviews(UIView view)
-        {
-            var ver = view as IVisualElementRenderer;
-
-            if (ver == null)
-            {
-                // VisualElementRenderers should implement their own dispose methods that will appropriately dispose and remove their child views.
-                // Attempting to do this work twice could cause a SIGSEGV (only observed in iOS8), so don't do this work here.
-                // Non-renderer views, such as separator lines, etc., can be removed here.
-                foreach (UIView subView in view.Subviews)
-                {
-                    DisposeSubviews(subView);
-                }
-
-                view.RemoveFromSuperview();
-            }
-
-            view.Dispose();
-        }
 
         void OnGroupedCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
@@ -373,9 +448,10 @@ namespace AiForms.Renderers.iOS
 
                     Control.PerformBatchUpdates(() =>
                     {
-                        Control.InsertItems (GetPaths(section, e.NewStartingIndex, e.NewItems.Count));
-                    },(finished) => {
-                        
+                        Control.InsertItems(GetPaths(section, e.NewStartingIndex, e.NewItems.Count));
+                    }, (finished) =>
+                    {
+
                     });
 
                     break;
@@ -385,14 +461,16 @@ namespace AiForms.Renderers.iOS
                     {
                         goto case NotifyCollectionChangedAction.Reset;
                     }
-                    Control.PerformBatchUpdates(() => {
+                    Control.PerformBatchUpdates(() =>
+                    {
                         Control.DeleteItems(GetPaths(section, e.OldStartingIndex, e.OldItems.Count));
-                    },(finished) => {
+                    }, (finished) =>
+                    {
                         // TODO: 意味不なので放置
                         //if (_estimatedRowHeight && TemplatedItemsView.TemplatedItems.Count == 0)
-                            //InvalidateCellCache();
+                        //InvalidateCellCache();
                     });
-                  
+
                     break;
 
                 case NotifyCollectionChangedAction.Move:
@@ -400,7 +478,8 @@ namespace AiForms.Renderers.iOS
                     {
                         goto case NotifyCollectionChangedAction.Reset;
                     }
-                    Control.PerformBatchUpdates(() => {
+                    Control.PerformBatchUpdates(() =>
+                    {
                         for (var i = 0; i < e.OldItems.Count; i++)
                         {
                             var oldi = e.OldStartingIndex;
@@ -414,10 +493,11 @@ namespace AiForms.Renderers.iOS
 
                             Control.MoveItem(NSIndexPath.FromRowSection(oldi, section), NSIndexPath.FromRowSection(newi, section));
                         }
-                    }, (finished) => {
+                    }, (finished) =>
+                    {
                         // TODO: 意味不なので放置
                         //if (_estimatedRowHeight && e.OldStartingIndex == 0)
-                            //InvalidateCellCache();
+                        //InvalidateCellCache();
                     });
 
                     break;
@@ -428,11 +508,13 @@ namespace AiForms.Renderers.iOS
                         goto case NotifyCollectionChangedAction.Reset;
                     }
 
-                    Control.PerformBatchUpdates(() => {
+                    Control.PerformBatchUpdates(() =>
+                    {
                         Control.ReloadItems(GetPaths(section, e.OldStartingIndex, e.OldItems.Count));
-                    }, (finished) => {
+                    }, (finished) =>
+                    {
                         //if (_estimatedRowHeight && e.OldStartingIndex == 0)
-                            //InvalidateCellCache();
+                        //InvalidateCellCache();
                     });
 
                     break;
@@ -454,10 +536,5 @@ namespace AiForms.Renderers.iOS
 
             return paths;
         }
-
-
-
-
-
     }
 }

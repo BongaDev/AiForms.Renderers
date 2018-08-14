@@ -1,23 +1,16 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Reflection;
 using UIKit;
 using Xamarin.Forms;
 using Xamarin.Forms.Internals;
 using Xamarin.Forms.Platform.iOS;
-using AiForms.Renderers;
-using RectangleF = CoreGraphics.CGRect;
 using SizeF = CoreGraphics.CGSize;
-using System.ComponentModel;
-using AiForms.Renderers.iOS.Cells;
-using System.Reflection;
-using CoreGraphics;
-using System.Threading.Tasks;
-using Foundation;
-using System.Windows.Input;
 
 namespace AiForms.Renderers.iOS.Cells
 {
     [Foundation.Preserve(AllMembers = true)]
-    public class ViewCollectionCell : UICollectionViewCell, INativeElementView
+    public class ContentCellContainer : UICollectionViewCell, INativeElementView
     {
         // Get internal members
         static BindableProperty RendererProperty = (BindableProperty)typeof(Platform).GetField("RendererProperty", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null);
@@ -28,15 +21,24 @@ namespace AiForms.Renderers.iOS.Cells
         WeakReference<IVisualElementRenderer> _rendererRef;
         ContentCell _contentCell;
         UIView _selectedForegroundView;
-
         Element INativeElementView.Element => ContentCell;
-        CollectionView CellParent => ContentCell.Parent as CollectionView;
-        internal bool SupressSeparator { get; set; }
+        CollectionView CellParent => _contentCell.Parent as CollectionView;
         bool _disposed;
 
-        public ViewCollectionCell(){}
+        public ContentCell ContentCell
+        {
+            get { return _contentCell; }
+            set
+            {
+                if (_contentCell == value)
+                    return;
+                UpdateCell(value);
+            }
+        }
 
-        public ViewCollectionCell(IntPtr handle):base(handle)
+        public ContentCellContainer(){}
+
+        public ContentCellContainer(IntPtr handle):base(handle)
         {
             _selectedForegroundView = new UIView();
 
@@ -51,20 +53,40 @@ namespace AiForms.Renderers.iOS.Cells
             _selectedForegroundView.Alpha = 0;
         }
 
-        public ContentCell ContentCell
+        protected override void Dispose(bool disposing)
         {
-            get { return _contentCell; }
-            set
-            {
-                if (_contentCell == value)
-                    return;
-                UpdateCell(value);
-            }
-        }
+            if (_disposed)
+                return;
 
-        public override void PrepareForReuse()
-        {
-            base.PrepareForReuse();
+            if (disposing)
+            {
+                if(_contentCell != null)
+                {
+                    _contentCell.PropertyChanged -= CellPropertyChanged;
+                    CellParent.PropertyChanged -= ParentPropertyChanged;
+                }
+
+
+                IVisualElementRenderer renderer;
+                if (_rendererRef != null && _rendererRef.TryGetTarget(out renderer) && renderer.Element != null)
+                {
+                    var platform = renderer.Element.Platform as Platform;
+                    if (platform != null)
+                        DisposeModelAndChildrenRenderers(renderer.Element);
+
+                    _rendererRef = null;
+                }
+
+                _selectedForegroundView?.RemoveFromSuperview();
+                _selectedForegroundView?.Dispose();
+                _selectedForegroundView = null;
+
+                _contentCell = null;
+            }
+
+            _disposed = true;
+
+            base.Dispose(disposing);
         }
 
         public override void LayoutSubviews()
@@ -93,6 +115,35 @@ namespace AiForms.Renderers.iOS.Cells
             Performance.Stop(reference);
         }
 
+
+        public override SizeF SizeThatFits(SizeF size)
+        {
+            // 今は決め打ちサイズだけど、より細かい制御を行う場合（成り行きサイズなど）は
+            // ここで計算する
+            return base.SizeThatFits(size);
+
+            //Performance.Start(out string reference);
+
+            //IVisualElementRenderer renderer;
+            //if (!_rendererRef.TryGetTarget(out renderer))
+            //    return base.SizeThatFits(size);
+
+            //if (renderer.Element == null)
+            //    return SizeF.Empty;
+
+            //double width = size.Width;
+            //var height = size.Height > 0 ? size.Height : double.PositiveInfinity;
+            //var result = renderer.Element.Measure(width, height, MeasureFlags.IncludeMargins);
+
+            //// make sure to add in the separator if needed
+            //var finalheight = (float)result.Request.Height + (SupressSeparator ? 0f : 1f) / UIScreen.MainScreen.Scale;
+
+            //Performance.Stop(reference);
+
+            //return new SizeF(size.Width, finalheight);
+        }
+
+
         public virtual void CellPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == Cell.IsEnabledProperty.PropertyName)
@@ -101,96 +152,37 @@ namespace AiForms.Renderers.iOS.Cells
 
         public virtual void ParentPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == CollectionView.SelectedColorProperty.PropertyName)
-                UpdateSelectedColor();
+            if (e.PropertyName == CollectionView.TouchFeedbackColorProperty.PropertyName)
+                UpdateTouchFeedbackColor();
             
         }
 
         public virtual void UpdateNativeCell()
         {
             BackgroundColor = UIColor.Clear;
-            UpdateSelectedColor();
+            UpdateTouchFeedbackColor();
             UpdateIsEnabled();
         }
 
-        void UpdateSelectedColor()
+        protected virtual void UpdateTouchFeedbackColor()
         {
-            if (CellParent != null && !CellParent.SelectedColor.IsDefault) {
-                _selectedForegroundView.BackgroundColor = CellParent.SelectedColor.ToUIColor();
+            if (CellParent != null && !CellParent.TouchFeedbackColor.IsDefault) {
+                _selectedForegroundView.BackgroundColor = CellParent.TouchFeedbackColor.ToUIColor();
             }
         }
-
-
-        public virtual async void SelectedAnimation(double duration, double start = 1, double end = 0)
-        {
-            //BringSubviewToFront(_selectedForegroundView);
-            //_selectedForegroundView.Hidden = false;
-            _selectedForegroundView.Alpha = (float)start;
-            await AnimateAsync(duration, () => {
-                _selectedForegroundView.Alpha = (float)end;
-            });
-            //_selectedForegroundView.Hidden = true;
-        }
-
-
 
         protected virtual void UpdateIsEnabled()
         {
             UserInteractionEnabled = ContentCell.IsEnabled;
         }
 
-        //public override SizeF SizeThatFits(SizeF size)
-        //{
-        //    Performance.Start(out string reference);
-
-        //    IVisualElementRenderer renderer;
-        //    if (!_rendererRef.TryGetTarget(out renderer))
-        //        return base.SizeThatFits(size);
-
-        //    if (renderer.Element == null)
-        //        return SizeF.Empty;
-
-        //    double width = size.Width;
-        //    var height = size.Height > 0 ? size.Height : double.PositiveInfinity;
-        //    var result = renderer.Element.Measure(width, height, MeasureFlags.IncludeMargins);
-
-        //    // make sure to add in the separator if needed
-        //    var finalheight = (float)result.Request.Height + (SupressSeparator ? 0f : 1f) / UIScreen.MainScreen.Scale;
-
-        //    Performance.Stop(reference);
-
-        //    return new SizeF(size.Width, finalheight);
-        //}
-
-        protected override void Dispose(bool disposing)
+        public virtual async void SelectedAnimation(double duration, double start = 1, double end = 0)
         {
-            if (_disposed)
-                return;
-
-            if (disposing)
-            {
-                ContentCell.PropertyChanged -= CellPropertyChanged;
-                CellParent.PropertyChanged -= ParentPropertyChanged;
-
-                IVisualElementRenderer renderer;
-                if (_rendererRef != null && _rendererRef.TryGetTarget(out renderer) && renderer.Element != null)
-                {
-                    var platform = renderer.Element.Platform as Platform;
-                    if (platform != null)
-                        DisposeModelAndChildrenRenderers(renderer.Element);
-
-                    _rendererRef = null;
-                }
-
-                _contentCell = null;
-            }
-
-            _disposed = true;
-
-            base.Dispose(disposing);
+            _selectedForegroundView.Alpha = (float)start;
+            await AnimateAsync(duration, () => {
+                _selectedForegroundView.Alpha = (float)end;
+            });
         }
-
-
 
         IVisualElementRenderer GetNewRenderer()
         {
@@ -210,7 +202,6 @@ namespace AiForms.Renderers.iOS.Cells
             if (_contentCell != null)
                 Device.BeginInvokeOnMainThread(_contentCell.SendDisappearing);
 
-            this._contentCell = cell;
             _contentCell = cell;
 
             Device.BeginInvokeOnMainThread(_contentCell.SendAppearing);
@@ -242,6 +233,7 @@ namespace AiForms.Renderers.iOS.Cells
             Performance.Stop(reference);
         }
 
+        // From internal Platform class
         void DisposeModelAndChildrenRenderers(Element view)
         {
             IVisualElementRenderer renderer;
@@ -276,6 +268,7 @@ namespace AiForms.Renderers.iOS.Cells
             view.ClearValue(RendererProperty);
         }
 
+        // From internal Platform class
         void DisposeRendererAndChildren(IVisualElementRenderer rendererToRemove)
         {
             if (rendererToRemove == null)

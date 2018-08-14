@@ -209,6 +209,14 @@
       <Project>{32BC5FF4-81FB-46DD-98ED-3D33C5318933}</Project>
       <Name>CollectionView.Droid</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\AiForms.Core\AiForms.Core.csproj">
+      <Project>{AD4954FC-86AC-421E-93F4-291FA264DF81}</Project>
+      <Name>AiForms.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AiForms.Core.Droid\AiForms.Core.Droid.csproj">
+      <Project>{77FAD2F5-6024-4883-BF31-D1937B44C0AE}</Project>
+      <Name>AiForms.Core.Droid</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.cs" />

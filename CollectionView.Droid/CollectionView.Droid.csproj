@@ -132,6 +132,10 @@
       <Project>{AD4954FC-86AC-421E-93F4-291FA264DF81}</Project>
       <Name>AiForms.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Sample\AiForms.Core.Droid\AiForms.Core.Droid.csproj">
+      <Project>{77FAD2F5-6024-4883-BF31-D1937B44C0AE}</Project>
+      <Name>AiForms.Core.Droid</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Cells\" />

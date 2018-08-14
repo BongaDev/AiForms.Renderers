@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using Reactive.Bindings;
 using Prism.Services;
+using System.Threading.Tasks;
 
 namespace Sample.ViewModels
 {
@@ -12,6 +13,8 @@ namespace Sample.ViewModels
         public ObservableCollection<PhotoGroup> ItemsSource { get; set; }
         public ReactiveCommand TapCommand { get; } = new ReactiveCommand();
         public ReactiveCommand LongTapCommand { get; } = new ReactiveCommand();
+        public ReactiveProperty<bool> IsRefreshing { get; } = new ReactiveProperty<bool>(false);
+        public AsyncReactiveCommand RefreshCommand { get; } = new AsyncReactiveCommand();
 
         public CollectionViewTestViewModel(IPageDialogService pageDialog)
         {
@@ -47,6 +50,11 @@ namespace Sample.ViewModels
             LongTapCommand.Subscribe(async item => {
                 var photo = item as PhotoItem;
                 await pageDialog.DisplayAlertAsync("", $"LongTap {photo.Title}", "OK");
+            });
+
+            RefreshCommand.Subscribe(async _ => {
+                await Task.Delay(3000);
+                IsRefreshing.Value = false;
             });
         }
 
